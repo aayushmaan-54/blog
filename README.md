@@ -1,6 +1,6 @@
 <div align="center">
 
-# My Logs.
+# Blog.
 
 A minimal, fast, and beautiful personal blog — built for clarity, not clutter.
 
@@ -145,3 +145,15 @@ MIT © 2026 Aayushmaan Soni
 **Made with ☕ and [Astro](https://astro.build)**
 
 </div>
+
+[] Upgrade astro version and fix vulnerabilities
+[] Change font to Geist Mono (for headings & code) and Geist Sans (for para)
+[] Change website theme
+[] Change Website title to Blog - Aayushmaan Soni
+[] Change Dynamic OG Image function to be more better
+[] Check llm and llm-full.txt
+[] Imporove lighthouse scores
+[] Remove transition when navigating
+[] Change typography.css if needed
+[] Change About page
+[] Remove cleanup Astro Components

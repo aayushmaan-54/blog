@@ -1,0 +1,70 @@
+---
+title: Redis Internals
+author: Aayushmaan Soni
+slug: redis-internals
+pubDatetime: 2026-04-28T01:15:26.000+05:30
+featured: false
+draft: true
+tags: ["redis", "internals", "backend"]
+description: redis
+---
+
+## What is Redis?
+Redis is in memory database. It stores value in KV format. It support various data types. It is single threaded and event driven. It is used for caching, session management, real time analytics, pub/sub and many more use cases.
+
+## Data type redis support
+- String: Store string value.
+- JSON: Store JSON value.
+- List: Store list of values.
+- Set: Store unique values in a list format.
+- Hashes: Store key value pair in a hash format.
+- Sorted Set: Store unique values in a sorted format.
+- Vector Set: Store vector data in a set format.
+- Streams: Store stream data in a stream format.
+- Geospatial: Store geospatial data in a geospatial format.
+- Bitmap: Store bitmap data in a bitmap format.
+- Bitfield: Store bitfield data in a bitfield format.
+- Probablistic: Store probablistic data in a probablistic format.
+- TimeSeries: Store time series data in a time series format.
+
+## Why redis architecture is smart?
+If you want a db that can handle concurrent request most of you migh think why not use mutli threaded architecture. But redis is single threaded and it is intentional design choice as in case of redis the most optimal choice is that. The creator of redis, Salvatore Sanfilippo, has correctly figured out the bottleneck for redis and picked the right architecture this is what only system designers should do.
+Now in case of redis lets say we use multi threaded architecture then we have to use locks to handle concurrent request and manging all that is not easy and it adds lot of overhead to system and main bottleneck in redis is not the memory operations but network i/o so instead of overengineering system and adding locks and all that we can just use single threaded architecture.
+
+## How redis works internally
+Instead of redis making a connection that is stay connected and wait for request and then process it that is `read()` system call now what happens using this is user connect to redis it opens persitant TCP connection and when we use `read()` it is actually blocking so it keeps waiting for request and when request comes it process it and agian wait for request until client disconnects.
+And for each request we use each new thread hence multi threaded arch then we need to use locks and all to handle conncureny.  and to handles 1000 users we need 1000 threads that is not optimal and it add lots of overhead to system.
+so instead of that as its very unoptimzed redis just keep polling socket and check for is there any socket connection that is ready and for each ready connection it process the request and this is done via `epoll_wait()` system call. So redis is event driven and it uses `epoll_wait()` to check for ready socket connection and send ready requests to event loop that processes them one by one. This is how redis can handle concurrent request without using multi threaded architecture.
+As we know main bottleneck is not cpu and introdcuing concurrecny locks and all that is basically bottlenecking cpu this is not bottlenecked so why optimzed that thats why creator of redis choose single threaded architecture and it is very smart design choice as it is very optimized for the use case of redis.  this is called  I/O multiplexing.
+
+## Redis 6
+In redis 6 they introduced multi threaded architecture but its is not for processing request. At very high trafiic only one thread had to do everyhting — poll sockets, read bytes off the wire, parse the command, execute it, write the response back that is main bottleneck so what  Redis 6+ did was split those responsibilities. Now multiple I/O threads handle the boring network work — reading raw bytes from sockets, parsing the command out of those bytes, and later writing the response back. The main thread only wakes up to do the actual Redis work: execute the command against the in-memory data structure, generate the result. Then hands it back to the I/O threads to ship out.
+
+## Why redis is RESP
+
+## Redis use RESP (Redis Protocol) to send and receive data.
+In this commands we want to send to redis are send in array format each element serialized.
+Every data start wih spaecial char and end with \r\n (CRLF)
+
+Simple string strt with '+' -> 'PONG' -> '\r\n'
+Minimal overhead as it requiure n + 3 bytes.
+
+Integer start with ':' -> '45' -> '\r\n'
+
+Bulk strings start with '$' -> 4 (size of str) -> \r\n -> "PONG" -> \r\n
+
+Why bulk string or cons or simple string?
+- Not binary safe(can conatin any byte data), cannot contain \r\n, can be used to store any binary data even png image.
+
+Special case
+Empty str: $0\r\n\r\n
+Null Val: $-1\r\n
+
+Array start with * -> 3 (num of ele) -> \r\n -> RESP Encoded ele
+["a", 200, "cat"] -> *3\r\n$1\r\na\r\n:200\r\n$3\r\ncat\r\n
+null arr: *-1\r\n
+empty arr: *0\r\n
+note: we cna have netsed arr
+
+Error message start with - -> error message -> \r\n
+- key not found \r\n
