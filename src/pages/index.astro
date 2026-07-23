@@ -20,10 +20,16 @@ const recentPosts = sortedPosts.filter(({ data }) => !data.featured);
       featuredPosts.length > 0 && (
         <>
           <section id='featured' class='space-y-12'>
-            <h2 class='mb-4 text-3xl font-semibold tracking-tight'>Featured</h2>
+            <h2 class='mb-4 font-mono text-xs font-extralight tracking-tight text-accent lowercase'>
+              // Featured
+            </h2>
             <ul>
-              {featuredPosts.map(post => (
-                <PostLink variant='h3' post={post} />
+              {featuredPosts.map((post, index) => (
+                <PostLink
+                  variant='h3'
+                  post={post}
+                  showDivider={index !== featuredPosts.length - 1}
+                />
               ))}
             </ul>
           </section>
@@ -34,14 +40,21 @@ const recentPosts = sortedPosts.filter(({ data }) => !data.featured);
     {
       recentPosts.length > 0 && (
         <section id='recent-posts' class='pb-6'>
-          <h2 class='mb-4 text-3xl font-semibold tracking-tight'>
-            Recent Writings
+          <h2 class='mb-4 font-mono text-xs font-extralight tracking-tight text-accent lowercase'>
+            // Recent-Writings
           </h2>
           <ul>
             {recentPosts.map(
               (post, index) =>
                 index < SITE.postPerIndex && (
-                  <PostLink variant='h3' post={post} />
+                  <PostLink
+                    variant='h3'
+                    post={post}
+                    showDivider={
+                      index !==
+                      Math.min(recentPosts.length, SITE.postPerIndex) - 1
+                    }
+                  />
                 ),
             )}
           </ul>

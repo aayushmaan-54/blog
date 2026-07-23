@@ -4,11 +4,10 @@ import { SITE } from '@/site.config';
 const navLinks = [
   { href: '/', label: 'Home', canShow: true },
   { href: '/blogs', label: 'Blogs', canShow: true },
-  { href: '/short-reads', label: 'Short Reads', canShow: SITE.showShortReads },
+  { href: '/short-reads', label: 'Short-Reads', canShow: SITE.showShortReads },
   { href: '/tags', label: 'Tags', canShow: true },
   { href: '/archives', label: 'Archives', canShow: SITE.showArchives },
   { href: '/search', label: 'Search', canShow: true },
-  { href: '/about', label: 'About', canShow: true },
 ];
 
 const { pathname } = Astro.url;
@@ -33,7 +32,7 @@ const isActive = (path: string) => {
             <a
               href={link.href}
               class:list={[
-                'flex w-full items-center justify-between text-foreground-muted underline decoration-1 underline-offset-4 transition-colors group-hover:text-foreground-primary',
+                'flex w-full items-center justify-between font-mono text-foreground-muted lowercase underline decoration-1 underline-offset-4 transition-colors group-hover:text-foreground-primary',
                 isActive(link.href) && 'text-foreground-primary',
               ]}
               aria-label={link.label}

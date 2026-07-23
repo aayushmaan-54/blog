@@ -19,7 +19,15 @@ const { page } = Astro.props;
 <BaseLayout title='blogs'>
   <ContentLayout pageTitle='Blogs'>
     <ul>
-      {page.data.map(post => <PostLink variant='h3' post={post} />)}
+      {
+        page.data.map((post, index) => (
+          <PostLink
+            variant='h3'
+            post={post}
+            showDivider={index !== page.data.length - 1}
+          />
+        ))
+      }
     </ul>
   </ContentLayout>
   <Pagination {page} />

@@ -1,4 +1,5 @@
-import { defineConfig, envField } from 'astro/config';
+import { unified } from '@astrojs/markdown-remark';
+import { defineConfig, envField, fontProviders } from 'astro/config';
 import icon from 'astro-icon';
 import tailwindcss from '@tailwindcss/vite';
 import sitemap from '@astrojs/sitemap';
@@ -31,24 +32,26 @@ export default defineConfig({
   ],
 
   markdown: {
-    remarkPlugins: [
-      [remarkToc, { maxDepth: 3, tight: true }],
-      [remarkCollapse, { test: 'Table of contents' }],
-      remarkDefinitionList,
-    ],
-    rehypePlugins: [
-      [
-        rehypeExternalLinks,
-        {
-          target: '_blank',
-          rel: ['noopener', 'noreferrer'],
-          content: { type: 'text', value: ' ↗' },
-        },
+    processor: unified({
+      remarkPlugins: [
+        [remarkToc, { maxDepth: 3, tight: true }],
+        [remarkCollapse, { test: 'Table of contents' }],
+        remarkDefinitionList,
       ],
-    ],
-    remarkRehype: {
-      handlers: (await import('remark-definition-list')).defListHastHandlers,
-    },
+      rehypePlugins: [
+        [
+          rehypeExternalLinks,
+          {
+            target: '_blank',
+            rel: ['noopener', 'noreferrer'],
+            content: { type: 'text', value: ' ↗' },
+          },
+        ],
+      ],
+      remarkRehype: {
+        handlers: (await import('remark-definition-list')).defListHastHandlers,
+      },
+    }),
     shikiConfig: {
       themes: { light: 'vitesse-light', dark: 'vitesse-dark' },
       defaultColor: false,
@@ -93,7 +96,16 @@ export default defineConfig({
     },
   },
 
-  experimental: {
-    preserveScriptOrder: true,
-  },
+  fonts: [
+    {
+      name: 'Geist Mono',
+      cssVariable: '--font-geist-mono',
+      provider: fontProviders.fontsource(),
+    },
+    {
+      name: 'Geist',
+      cssVariable: '--font-geist-sans',
+      provider: fontProviders.fontsource(),
+    },
+  ],
 });

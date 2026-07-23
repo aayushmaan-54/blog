@@ -35,7 +35,15 @@ const { page, tagName } = Astro.props;
     titleTransition={`tag-${tag}`}
   >
     <ul>
-      {page.data.map(post => <PostLink post={post} variant='h3' />)}
+      {
+        page.data.map((post, index) => (
+          <PostLink
+            post={post}
+            variant='h3'
+            showDivider={index !== page.data.length - 1}
+          />
+        ))
+      }
     </ul>
   </ContentLayout>
 

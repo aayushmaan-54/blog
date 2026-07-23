@@ -23,8 +23,8 @@ const transitionName = enableTransition ? `tag-${tag}` : undefined;
   <a
     href={`/tags/${tag}/`}
     class:list={[
-      'flex items-center pe-4 transition-colors duration-200',
-      'text-foreground-muted hover:text-foreground-primary focus-visible:text-foreground-primary',
+      'flex items-center pe-4 duration-200',
+      'text-accent hover:underline focus-visible:text-foreground-primary',
       size === 'sm' ? 'text-sm' : 'text-lg',
     ]}
   >

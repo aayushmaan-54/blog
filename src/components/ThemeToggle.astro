@@ -1,16 +1,12 @@
 ---
-import { Icon } from 'astro-icon/components';
+
 ---
 
-<button id='theme-toggle' aria-label='auto'>
-  <Icon
-    name='tabler:bulb-filled'
-    class='theme-icon-dark hidden rotate-180 dark:block'
-    size='1.2rem'
-  />
-  <Icon
-    name='tabler:bulb'
-    class='theme-icon-light rotate-180 dark:hidden'
-    size='1.2rem'
-  />
+<button
+  id='theme-toggle'
+  aria-label='auto'
+  class='cursor-pointer rounded-md border px-3 py-1 font-mono text-sm'
+>
+  <p class='hidden dark:block'>light</p>
+  <p class='block dark:hidden'>dark</p>
 </button>

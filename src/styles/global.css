@@ -4,30 +4,35 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --primary: #f2f2f0;
+  --primary: #faf9f6;
   --secondary: #ffffff;
-  --border: #e0e0e0;
-  --foreground-primary: #1f2227;
-  --foreground-secondary: #343b45;
-  --foreground-muted: #4b5563;
+  --border: #e4e2da;
+  --foreground-primary: #1a1a1a;
+  --foreground-secondary: #3f3f3f;
+  --foreground-muted: #5c5c5c;
+  --accent: #185fa5;
   --error: #a1334b;
   --success: #33a147;
 }
 
 .dark {
-  --primary: #08090b;
-  --secondary: #111317;
-  --border: #1f2430;
-  --foreground-primary: #e5e4e3;
-  --foreground-secondary: #a7aebb;
-  --foreground-muted: #9ca3af;
+  --primary: #121212;
+  --secondary: #1a1a1a;
+  --border: #2a2a2a;
+  --foreground-primary: #e4e4e4;
+  --foreground-secondary: #b8b8b8;
+  --foreground-muted: #a0a0a0;
+  --accent: #5b9be0;
   --error: #c73a58;
   --success: #3fc457;
 }
 
 @theme {
-  --font-sans: 'Source Serif 4', 'Georgia', serif;
-  --font-mono: 'JetBrains Mono', 'Geist Mono', monospace;
+  --font-sans:
+    var(--font-geist-sans), 'Geist Sans Fallback', ui-sans-serif, system-ui,
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono:
+    var(--font-geist-mono), 'Geist Mono Fallback', ui-monospace, monospace;
 
   --color-primary: var(--primary);
   --color-secondary: var(--secondary);
@@ -35,6 +40,7 @@
   --color-foreground-primary: var(--foreground-primary);
   --color-foreground-secondary: var(--foreground-secondary);
   --color-foreground-muted: var(--foreground-muted);
+  --color-accent: var(--accent);
   --color-error: var(--error);
   --color-success: var(--success);
 }

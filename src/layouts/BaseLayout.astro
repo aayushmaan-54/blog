@@ -1,13 +1,4 @@
 ---
-import '@fontsource/source-serif-4/400';
-import '@fontsource/source-serif-4/400-italic';
-import '@fontsource/source-serif-4/600';
-import '@fontsource/source-serif-4/700';
-
-import '@fontsource/jetbrains-mono/400';
-import '@fontsource/jetbrains-mono/500';
-import '@fontsource/jetbrains-mono/600';
-
 import '@/styles/global.css';
 
 import Footer from '@/components/Footer.astro';
@@ -15,6 +6,7 @@ import Databuddy from '@/components/Databuddy.astro';
 import Header from '@/components/Header.astro';
 import Nav from '@/components/Nav.astro';
 import { SITE } from '@/site.config';
+import { Font } from 'astro:assets';
 import {
   PUBLIC_GOOGLE_SITE_VERIFICATION,
   DATABUDDY_CLIENT_ID,
@@ -94,6 +86,8 @@ const shouldNoIndex = isDraft && import.meta.env.DEV;
     <meta charset='UTF-8' />
     <meta name='viewport' content='width=device-width' />
     <link rel='icon' type='image/svg+xml' href='/light-logo.svg' id='favicon' />
+    <Font cssVariable='--font-geist-sans' preload />
+    <Font cssVariable='--font-geist-mono' preload />
 
     {shouldNoIndex && <meta name='robots' content='noindex, nofollow' />}
 
