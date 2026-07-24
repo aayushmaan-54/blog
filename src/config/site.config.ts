@@ -6,7 +6,7 @@ export const SITE = {
   profile: 'https://www.aayushmaansoni.com',
   title: 'Aayushmaan Soni',
   description:
-    'Personal blog of Aayushmaan Soni — deep-dives on backend engineering, distributed systems, and how things actually work under the hood.',
+    'Writing about software, systems, and whatever else sparks my curiosity.',
   ogImage: 'og.png',
   browserStorage: {
     backUrl: 'ams/blog/back-url',
