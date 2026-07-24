@@ -1,20 +1,17 @@
 ---
-import { SITE } from '@/site.config';
-
 interface StringTitleProp {
   pageTitle: string;
 }
 
 interface ArrayTitleProp {
   pageTitle: [string, string];
-  titleTransition: string;
 }
 
 export type Props = StringTitleProp | ArrayTitleProp;
 
 const props = Astro.props as Props;
 
-const backUrl = SITE.showBackButton ? Astro.url.pathname : '/';
+const backUrl = Astro.url.pathname;
 ---
 
 <main
@@ -23,12 +20,10 @@ const backUrl = SITE.showBackButton ? Astro.url.pathname : '/';
   class='mx-auto mb-4 w-full max-w-app'
 >
   {
-    'titleTransition' in props ? (
+    Array.isArray(props.pageTitle) ? (
       <h1 class='text-3xl font-semibold tracking-tight sm:text-3xl'>
         {props.pageTitle[0]}{' '}
-        <span transition:name={props.titleTransition}>
-          {props.pageTitle[1]}
-        </span>
+        <span>{props.pageTitle[1]}</span>
       </h1>
     ) : (
       <h1 class='text-2xl font-semibold sm:text-3xl'>{props.pageTitle}</h1>
@@ -38,13 +33,11 @@ const backUrl = SITE.showBackButton ? Astro.url.pathname : '/';
 </main>
 
 <script>
-  import { SITE } from '@/site.config';
+  import { SITE } from '@/config/site.config';
 
-  document.addEventListener('astro:page-load', () => {
-    const mainContent = document.querySelector('#main-content');
-    const backUrl = mainContent?.getAttribute('data-back-url');
-    if (backUrl) {
-      sessionStorage.setItem(SITE.browserStorage.backUrl, backUrl);
-    }
-  });
+  const mainContent = document.querySelector('#main-content');
+  const backUrl = mainContent?.getAttribute('data-back-url');
+  if (backUrl) {
+    sessionStorage.setItem(SITE.browserStorage.backUrl, backUrl);
+  }
 </script>

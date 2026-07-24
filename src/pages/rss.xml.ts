@@ -1,6 +1,6 @@
 import rss from '@astrojs/rss';
 import { getCollection } from 'astro:content';
-import { SITE } from '@/site.config';
+import { SITE } from '@/config/site.config';
 import getSortedPosts from '@/utils/content/getSortedPosts';
 import getPostPath from '@/utils/content/getPostPath';
 

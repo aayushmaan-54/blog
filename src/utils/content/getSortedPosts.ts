@@ -16,7 +16,11 @@ const collectionOrder: Record<
   short_reads: 1,
 };
 
-const getSortedPosts = (posts: CollectionEntry<'blogs' | 'short_reads'>[]) => {
+const getSortedPosts = <
+  T extends CollectionEntry<'blogs' | 'short_reads'>,
+>(
+  posts: T[],
+): T[] => {
   return posts.filter(isPostPublished).sort((a, b) => {
     const orderDiff =
       collectionOrder[a.collection] - collectionOrder[b.collection];

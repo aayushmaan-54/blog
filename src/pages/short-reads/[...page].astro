@@ -3,7 +3,7 @@ import type { GetStaticPaths } from 'astro';
 import { getCollection } from 'astro:content';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Pagination from '@/components/Pagination.astro';
-import { SITE } from '@/site.config';
+import { SITE } from '@/config/site.config';
 import ContentLayout from '@/layouts/ContentLayout.astro';
 import PostLink from '@/components/PostLink.astro';
 import getSortedPosts from '@/utils/content/getSortedPosts';
@@ -13,14 +13,19 @@ export const getStaticPaths = (async ({ paginate }) => {
     'short_reads',
     ({ data }) => !data.draft,
   );
-  return paginate(getSortedPosts(shortReads), { pageSize: SITE.postPerPage });
+  return paginate(getSortedPosts(shortReads), {
+    pageSize: SITE.postPerPage.shortReads,
+  });
 }) satisfies GetStaticPaths;
 
 const { page } = Astro.props;
 ---
 
-<BaseLayout title='short reads'>
-  <ContentLayout pageTitle='Short Reads'>
+<BaseLayout
+  title='short reads'
+  description='Short technical notes, tips, and quick thoughts by Aayushmaan Soni.'
+>
+  <ContentLayout pageTitle='short-reads'>
     <ul>
       {
         page.data.map((post, index) => (

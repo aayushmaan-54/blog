@@ -5,13 +5,12 @@ import Footer from '@/components/Footer.astro';
 import Databuddy from '@/components/Databuddy.astro';
 import Header from '@/components/Header.astro';
 import Nav from '@/components/Nav.astro';
-import { SITE } from '@/site.config';
+import { SITE } from '@/config/site.config';
 import { Font } from 'astro:assets';
 import {
   PUBLIC_GOOGLE_SITE_VERIFICATION,
   DATABUDDY_CLIENT_ID,
 } from 'astro:env/client';
-import { ClientRouter } from 'astro:transitions';
 
 export interface Props {
   title?: string;
@@ -25,6 +24,7 @@ export interface Props {
   scrollSmooth?: boolean;
   showNav?: boolean;
   section?: 'blogs' | 'short-reads' | string;
+  tags?: string[];
   isDraft?: boolean;
 }
 
@@ -40,12 +40,16 @@ const {
   scrollSmooth = true,
   showNav = true,
   section,
+  tags = [],
   isDraft = false,
 } = Astro.props;
 
-const pageTitle = section
-  ? `logs / ${section} / ${title?.toLowerCase()}`
-  : `logs / ${title?.toLowerCase()}`;
+const pageTitle =
+  Astro.url.pathname === '/'
+    ? `${SITE.title} — Blog`
+    : `${title} | ${SITE.title}`;
+
+const isArticle = Boolean(pubDatetime);
 
 const socialImageURL = new URL(ogImage, Astro.url);
 
@@ -57,23 +61,77 @@ const sanitizeForJson = (str: string | undefined): string => {
     .trim();
 };
 
-const structuredData = {
-  '@context': 'https://schema.org',
-  '@type': 'BlogPosting',
-  headline: sanitizeForJson(title),
-  image: socialImageURL.href,
-  datePublished: pubDatetime?.toISOString() ?? '',
-  ...(modDatetime && { dateModified: modDatetime.toISOString() }),
-  author: [
-    {
-      '@type': 'Person',
-      name: sanitizeForJson(author),
-      ...(profile && { url: profile }),
-    },
-  ],
-};
+const structuredData = isArticle
+  ? {
+      '@context': 'https://schema.org',
+      '@type': 'BlogPosting',
+      headline: sanitizeForJson(title),
+      image: socialImageURL.href,
+      datePublished: pubDatetime?.toISOString(),
+      ...(modDatetime && { dateModified: modDatetime.toISOString() }),
+      author: [
+        {
+          '@type': 'Person',
+          name: sanitizeForJson(author),
+          ...(profile && { url: profile }),
+        },
+      ],
+    }
+  : {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: sanitizeForJson(SITE.title),
+      url: SITE.website,
+      description: sanitizeForJson(SITE.description),
+      author: {
+        '@type': 'Person',
+        name: sanitizeForJson(SITE.author),
+        ...(profile && { url: profile }),
+      },
+    };
 
 const shouldNoIndex = isDraft && import.meta.env.DEV;
+
+const sectionLabel =
+  section === 'short-reads'
+    ? 'Short Reads'
+    : section === 'blogs'
+      ? 'Blogs'
+      : undefined;
+const sectionPath =
+  section === 'short-reads'
+    ? '/short-reads'
+    : section === 'blogs'
+      ? '/blogs'
+      : undefined;
+
+const breadcrumbData =
+  isArticle && sectionLabel && sectionPath
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Home',
+            item: SITE.website,
+          },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: sectionLabel,
+            item: new URL(sectionPath, SITE.website).href,
+          },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: sanitizeForJson(title),
+            item: canonicalURL.toString(),
+          },
+        ],
+      }
+    : null;
 ---
 
 <!doctype html>
@@ -85,7 +143,7 @@ const shouldNoIndex = isDraft && import.meta.env.DEV;
   <head>
     <meta charset='UTF-8' />
     <meta name='viewport' content='width=device-width' />
-    <link rel='icon' type='image/svg+xml' href='/light-logo.svg' id='favicon' />
+    <link rel='icon' href='/favicon.ico' sizes='any' />
     <Font cssVariable='--font-geist-sans' preload />
     <Font cssVariable='--font-geist-mono' preload />
 
@@ -103,15 +161,9 @@ const shouldNoIndex = isDraft && import.meta.env.DEV;
 
       const isDark = theme === 'dark';
       document.documentElement.classList.toggle('dark', isDark);
-
-      const favicon = document.querySelector('link[rel="icon"]');
-      if (favicon) {
-        favicon.href = isDark ? '/light-logo.svg' : '/dark-logo.svg';
-      }
     </script>
 
     <script>
-      import '@/scripts/track-back-url';
       import '@/scripts/toggle-theme';
     </script>
     <link rel='canonical' href={canonicalURL} />
@@ -124,7 +176,9 @@ const shouldNoIndex = isDraft && import.meta.env.DEV;
     <link rel='sitemap' href='/sitemap-index.xml' />
 
     <!-- Open Graph / Facebook -->
-    <meta property='og:type' content='article' />
+    <meta property='og:type' content={isArticle ? 'article' : 'website'} />
+    <meta property='og:site_name' content={SITE.title} />
+    <meta property='og:locale' content='en_US' />
     <meta property='og:title' content={title} />
     <meta property='og:description' content={description} />
     <meta property='og:url' content={canonicalURL} />
@@ -132,6 +186,17 @@ const shouldNoIndex = isDraft && import.meta.env.DEV;
 
     <!-- Article Author URL in Open Graph -->
     {profile && <meta property='article:author' content={profile} />}
+
+    <!-- Article section & tags -->
+    {
+      isArticle && sectionLabel && (
+        <meta property='article:section' content={sectionLabel} />
+      )
+    }
+    {
+      isArticle &&
+        tags.map(tag => <meta property='article:tag' content={tag} />)
+    }
 
     <!-- Databuddy Analytics -->
     <Databuddy websiteId={DATABUDDY_CLIENT_ID} />
@@ -179,6 +244,17 @@ const shouldNoIndex = isDraft && import.meta.env.DEV;
       set:html={JSON.stringify(structuredData)}
     />
 
+    <!-- Breadcrumb structured data (articles only) -->
+    {
+      breadcrumbData && (
+        <script
+          type='application/ld+json'
+          is:inline
+          set:html={JSON.stringify(breadcrumbData)}
+        />
+      )
+    }
+
     <!-- Enable RSS feed auto-discovery (https://docs.astro.build/en/recipes/rss/#enabling-rss-feed-auto-discovery)  -->
     <link
       rel='alternate'
@@ -198,8 +274,6 @@ const shouldNoIndex = isDraft && import.meta.env.DEV;
         />
       )
     }
-
-    <ClientRouter />
   </head>
   <body class='flex min-h-screen flex-col'>
     <div class='mx-auto w-full max-w-app px-4'>

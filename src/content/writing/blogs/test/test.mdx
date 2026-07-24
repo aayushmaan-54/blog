@@ -5,7 +5,7 @@ slug: test-template
 pubDatetime: 2026-01-18T00:10:31.000+05:30
 featured: false
 draft: true
-tags: ["testing", "template", "mdx", "blog"]
+tags: [test]
 description: "Testing template for mdx"
 ogImage: "https://placehold.co/1200x630?text=OG+Image"
 ---
@@ -96,6 +96,13 @@ function createServer(config: Config): void {
 const veryLongVariableNameThatMightBreakTheLayoutOnMobileDevicesIfNotHandledCorrectlyWithOverflowScroll = "test";
 ```
 
+### Word highlight
+```ts
+const client = new Redis();
+// [!code word:client]
+client.set("key", client.get("other"));
+```
+
 ## 7. Tables
 | Name | Age |
 |------|-----|
@@ -105,6 +112,11 @@ const veryLongVariableNameThatMightBreakTheLayoutOnMobileDevicesIfNotHandledCorr
 | Left Align | Center Align | Right Align |
 | :--- | :----: | ---: |
 | Short | This is a much longer cell to test wrapping | $100.00 |
+
+| Method | Signature |
+| :--- | :--- |
+| Read | `fs.readFileSync(path)` |
+| Write | `fs.writeFileSync(path, data)` |
 
 ## 8. Blockquotes
 > This is a quote
@@ -141,6 +153,20 @@ This statement needs a citation[^1]. Here's another reference[^2].
 
 <Callout type="info">
   Informational callouts provide helpful tips or additional context.
+</Callout>
+
+<Callout type="note" title="Callout with a title">
+  Callouts accept an optional `title` prop that renders above the body text.
+</Callout>
+
+<Callout type="tip">
+Callouts also render rich content — this one mixes multiple paragraphs, a list, and inline `code` to exercise the callout's prose styles.
+
+- First item with a [link](https://www.aayushmaan.me)
+- Second item with **bold** text and `inline code`
+- Third item
+
+A closing paragraph to verify that spacing between block elements inside a callout stays tight and readable.
 </Callout>
 
 ## 13. HTML inside MDX (Allowed)

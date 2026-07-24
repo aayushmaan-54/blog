@@ -1,20 +1,35 @@
 ---
-import Tag from '@/components/Tag.astro';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import ContentLayout from '@/layouts/ContentLayout.astro';
 import getUniqueTags from '@/utils/content/getUniqueTags';
 import { getCollection } from 'astro:content';
 
 const blogs = await getCollection('blogs', ({ data }) => !data.draft);
-let tags = getUniqueTags(blogs);
+const tags = getUniqueTags(blogs);
 ---
 
-<BaseLayout title='tags'>
-  <ContentLayout pageTitle='Tags'>
-    <ul class='mt-4'>
+<BaseLayout
+  title='tags'
+  description='Browse every topic and tag covered across the blog.'
+>
+  <ContentLayout pageTitle='tags'>
+    <ul class='mt-6 flex flex-wrap gap-x-6 gap-y-3'>
       {
-        tags.map(({ tag, tagName }) => (
-          <Tag {tag} {tagName} size='lg' enableTransition={true} />
+        tags.map(({ tag, tagName, count }) => (
+          <li>
+            <a
+              href={`/tags/${tag}/`}
+              class='group text-lg text-accent transition-colors focus-visible:text-foreground-primary'
+            >
+              <span aria-hidden='true' class='italic opacity-70 group-hover:opacity-100'>
+                #
+              </span>
+              <span class='underline-offset-4 group-hover:underline'>
+                {tagName}
+              </span>
+              <sup class='ml-0.5 text-[0.6rem] text-foreground-muted'>{count}</sup>
+            </a>
+          </li>
         ))
       }
     </ul>

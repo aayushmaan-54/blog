@@ -38,14 +38,14 @@ export default async function loadGoogleFontGlyphs(
 > {
   const fontsConfig = [
     {
-      name: 'JetBrains Mono',
-      font: 'JetBrains+Mono',
+      name: 'Geist Mono',
+      font: 'Geist+Mono',
       weight: 400,
       style: 'normal',
     },
     {
-      name: 'JetBrains Mono',
-      font: 'JetBrains+Mono',
+      name: 'Geist Mono',
+      font: 'Geist+Mono',
       weight: 700,
       style: 'bold',
     },

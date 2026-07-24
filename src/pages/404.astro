@@ -9,8 +9,8 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
   >
     <pre
       class='m-0 mb-8 text-sm whitespace-pre md:text-base'>
-<span class="text-error font-bold">[ERROR] 404</span>
-Entry not found in logs.
+<span class="text-error font-bold">[error] 404</span>
+entry not found in logs.
 
 [ x ] entry removed <span class="cursor">▌</span>
     </pre>
@@ -18,16 +18,16 @@ Entry not found in logs.
     <nav class='flex items-center gap-4'>
       <Link
         href='/archives'
-        class='hover:text-accent underline decoration-1 underline-offset-8 transition-colors'
+        class='hover:text-accent underline decoration-1 underline-offset-4 transition-colors'
       >
-        View Archive
+        view archive
       </Link>
-      <span class='text-text-muted' aria-hidden='true'>·</span>
+      <span class='text-foreground-muted' aria-hidden='true'>·</span>
       <Link
         href='/'
-        class='hover:text-accent underline decoration-1 underline-offset-8 transition-colors'
+        class='hover:text-accent underline decoration-1 underline-offset-4 transition-colors'
       >
-        Go Home
+        go home
       </Link>
     </nav>
   </main>

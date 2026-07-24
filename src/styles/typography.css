@@ -4,6 +4,7 @@
   /* ===== Override default Tailwind Typography styles ===== */
   .app-prose {
     @apply prose text-foreground-primary;
+    @apply text-[1.0625rem] leading-[1.75];
 
     h1,
     h2,
@@ -11,6 +12,18 @@
     h4,
     th {
       @apply mb-3 font-semibold text-foreground-primary;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+      @apply scroll-mt-20 text-balance;
+    }
+
+    p,
+    li {
+      @apply text-pretty;
     }
 
     dt {
@@ -32,7 +45,7 @@
     }
 
     a {
-      @apply wrap-break-word text-foreground-primary underline-offset-4 hover:text-foreground-secondary focus-visible:no-underline;
+      @apply wrap-break-word text-foreground-primary underline decoration-accent/40 decoration-1 underline-offset-4 transition-colors hover:text-accent hover:decoration-accent focus-visible:no-underline;
     }
 
     ul {
@@ -66,14 +79,16 @@
     }
 
     img {
-      @apply mx-auto border border-foreground-primary;
+      @apply mx-auto rounded-lg border border-border;
     }
 
     figcaption {
-      @apply opacity-75;
+      @apply text-center opacity-75;
     }
 
     table {
+      @apply block w-max max-w-full overflow-x-auto;
+
       th,
       td {
         @apply border border-border p-2;
@@ -89,7 +104,11 @@
     }
 
     code {
-      @apply rounded border border-border bg-secondary p-1 wrap-break-word text-foreground-primary before:content-none after:content-none;
+      @apply rounded border border-border bg-secondary px-1.5 py-0.5 text-[0.875em] font-normal wrap-break-word text-foreground-primary before:content-none after:content-none;
+      font-variant-ligatures: none;
+      font-feature-settings:
+        'liga' 0,
+        'calt' 0;
     }
 
     .astro-code code {
@@ -97,7 +116,7 @@
     }
 
     blockquote {
-      @apply border-foreground-muted wrap-break-word opacity-80;
+      @apply border-l-2 border-accent/40 wrap-break-word text-foreground-secondary;
     }
 
     details {
@@ -170,10 +189,65 @@
   /* ===== Code Blocks & Syntax Highlighting ===== */
   .astro-code {
     @apply flex overflow-x-auto overflow-y-auto border bg-(--shiki-light-bg) text-(--shiki-light) outline-border [&_span]:text-(--shiki-light);
+    font-variant-ligatures: none;
+    font-feature-settings:
+      'liga' 0,
+      'calt' 0;
   }
 
   .code-block-wrapper {
     @apply overflow-visible;
+  }
+  .astro-code,
+  .app-prose table {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  .astro-code:hover,
+  .app-prose table:hover {
+    scrollbar-color: color-mix(
+        in srgb,
+        var(--foreground-muted) 45%,
+        transparent
+      )
+      transparent;
+  }
+
+  .astro-code::-webkit-scrollbar,
+  .app-prose table::-webkit-scrollbar {
+    height: 0.5rem;
+    width: 0.5rem;
+  }
+
+  .astro-code::-webkit-scrollbar-track,
+  .app-prose table::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .astro-code::-webkit-scrollbar-thumb,
+  .app-prose table::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    border-radius: 9999px;
+    transition: background-color 0.2s ease;
+  }
+
+  .astro-code:hover::-webkit-scrollbar-thumb,
+  .app-prose table:hover::-webkit-scrollbar-thumb {
+    background-color: color-mix(
+      in srgb,
+      var(--foreground-muted) 45%,
+      transparent
+    );
+  }
+
+  .astro-code::-webkit-scrollbar-thumb:hover,
+  .app-prose table::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(
+      in srgb,
+      var(--foreground-muted) 65%,
+      transparent
+    );
   }
 
   .dark .astro-code {

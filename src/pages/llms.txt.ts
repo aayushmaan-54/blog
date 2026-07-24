@@ -1,10 +1,6 @@
-/**
- * LLMs.txt - Machine-readable site index for AI/LLM consumption
- * https://llmstxt.org/
- */
 import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
-import { SITE } from '@/site.config';
+import { SITE } from '@/config/site.config';
 import getSortedPosts from '@/utils/content/getSortedPosts';
 import getPostPath from '@/utils/content/getPostPath';
 import formatShortDate from '@/utils/date/formatShortDate';
@@ -26,7 +22,6 @@ export const GET: APIRoute = async () => {
     '',
     '## Core Links',
     '',
-    `- [About](${siteUrl}/about)`,
     `- [Archives](${siteUrl}/archives)`,
     `- [Tags](${siteUrl}/tags)`,
     `- [Blogs](${siteUrl}/blogs)`,

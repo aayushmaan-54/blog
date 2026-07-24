@@ -2,13 +2,9 @@
 import { getCollection, render, type CollectionEntry } from 'astro:content';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import PostMeta from '@/components/PostMeta.astro';
-import EditPost from '@/components/EditPost.astro';
 import BackButton from '@/components/BackButton.astro';
 import BackToTopButton from '@/components/BackToTopButton.astro';
-import ShareLinks from '@/components/ShareLinks.astro';
 import Tag from '@/components/Tag.astro';
-import { Icon } from 'astro-icon/components';
-import { SITE } from '@/site.config';
 import { slugifyStr } from '@/utils/text/slugify';
 import getPostPath from '@/utils/content/getPostPath';
 import { components } from '@/components/mdx';
@@ -49,7 +45,6 @@ const {
   pubDatetime,
   modDatetime,
   timezone,
-  hideEditPost,
   description,
   tags,
   ogImage: initOgImage,
@@ -65,7 +60,7 @@ if (typeof initOgImage === 'string') {
   ogImageUrl = initOgImage.src;
 }
 
-if (!ogImageUrl && SITE.dynamicOgImage) {
+if (!ogImageUrl) {
   ogImageUrl = `${getPostPath(
     post.id,
     post.filePath,
@@ -87,28 +82,26 @@ const layoutProps = {
   pubDatetime,
   modDatetime,
   scrollSmooth: true,
-  showNav: false,
+  showNav: true,
   section: 'blogs',
+  tags,
 };
 ---
 
 <BaseLayout {...layoutProps}>
-  <div class='mt-12 mb-4'>
+  <div class='mt-4 mb-4'>
     <BackButton />
   </div>
 
   <main
     id='main-content'
-    class:list={[
-      'mx-auto w-full max-w-app px-4 pb-12',
-      { 'mt-8': !SITE.showBackButton },
-    ]}
+    class:list={['mx-auto w-full max-w-app px-4 pb-12']}
     data-pagefind-body
   >
     <h1
       class='inline-block text-2xl font-semibold text-foreground-primary sm:text-3xl'
     >
-      <span transition:name={slugifyStr(title)}>{title}</span>
+      <span>{title}</span>
     </h1>
 
     <div class='my-2 mb-16 text-sm'>
@@ -120,14 +113,6 @@ const layoutProps = {
           size='sm'
           text={post.body || ''}
         />
-        <span
-          aria-hidden='true'
-          class:list={[
-            'max-sm:hidden',
-            { hidden: !SITE.editPost.enabled || hideEditPost },
-          ]}>|</span
-        >
-        <EditPost {hideEditPost} {post} class='max-sm:hidden' />
       </div>
 
       {
@@ -150,23 +135,16 @@ const layoutProps = {
 
     <hr class='my-8 border-dashed' />
 
-    <EditPost class='sm:hidden' {hideEditPost} {post} />
-
     <BackToTopButton />
     <div class='mb-4 -ml-4'>
       <BackButton />
     </div>
-    <ShareLinks />
   </main>
 </BaseLayout>
 
-<template id='clipboard-icon-template'>
-  <Icon name='tabler:clipboard' class='h-4 w-4' />
-</template>
+<template id='clipboard-icon-template'>copy</template>
 
-<template id='clipboard-check-icon-template'>
-  <Icon name='tabler:clipboard-check' class='h-4 w-4' />
-</template>
+<template id='clipboard-check-icon-template'>copied!</template>
 
 <script is:inline data-astro-rerun>
   function createProgressBar() {
@@ -264,7 +242,7 @@ const layoutProps = {
       }
 
       const copyButton = document.createElement('button');
-      copyButton.className = `copy-code absolute end-2 top-2 z-20 opacity-100 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100 rounded bg-primary border border-border p-1.5 text-foreground-primary transition-all hover:bg-primary/80`;
+      copyButton.className = `copy-code absolute end-2 top-2 z-20 opacity-100 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100 rounded bg-primary border border-border px-2 py-1 font-mono text-xs text-foreground-primary transition-all hover:bg-primary/80`;
       copyButton.setAttribute('aria-label', 'Copy code');
       copyButton.setAttribute('title', 'Copy');
 
@@ -311,10 +289,4 @@ const layoutProps = {
   }
 
   attachCopyButtons();
-
-  document.addEventListener('astro:after-swap', attachCopyButtons);
-
-  document.addEventListener('astro:after-swap', () =>
-    window.scrollTo({ left: 0, top: 0, behavior: 'instant' }),
-  );
 </script>

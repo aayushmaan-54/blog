@@ -50,7 +50,7 @@
     @apply border-border;
   }
   body {
-    @apply bg-primary font-sans text-foreground-primary;
+    @apply bg-primary font-sans text-foreground-primary antialiased;
   }
 }
 

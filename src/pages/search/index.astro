@@ -2,17 +2,19 @@
 import '@pagefind/default-ui/css/ui.css';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import ContentLayout from '@/layouts/ContentLayout.astro';
-import { SITE } from '@/site.config';
+import { SITE } from '@/config/site.config';
 
-const backUrl = SITE.showBackButton ? `${Astro.url.pathname}` : '/';
+const backUrl = `${Astro.url.pathname}`;
 const backUrlKey = SITE.browserStorage.backUrl;
 ---
 
-<BaseLayout title='search'>
-  <ContentLayout pageTitle='Search'>
+<BaseLayout
+  title='search'
+  description='Search across all articles and short reads on the blog.'
+>
+  <ContentLayout pageTitle='search'>
     <div
       id='pagefind-search'
-      transition:persist
       data-backurl={backUrl}
       data-config-key={backUrlKey}
     >
@@ -76,12 +78,6 @@ const backUrlKey = SITE.browserStorage.backUrl;
       }
     });
   }
-
-  document.addEventListener('astro:after-swap', () => {
-    const pagefindSearch = document.querySelector('#pagefind-search');
-    if (pagefindSearch && pagefindSearch.querySelector('form')) return;
-    initSearch();
-  });
 
   initSearch();
 </script>

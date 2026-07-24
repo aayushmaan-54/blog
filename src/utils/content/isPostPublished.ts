@@ -1,5 +1,5 @@
 import type { CollectionEntry } from 'astro:content';
-import { SITE } from '@/site.config';
+import { SITE } from '@/config/site.config';
 
 const isPostPublished = ({
   data,

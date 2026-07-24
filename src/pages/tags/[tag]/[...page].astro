@@ -1,5 +1,5 @@
 ---
-import { SITE } from '@/site.config';
+import { SITE } from '@/config/site.config';
 import type { GetStaticPathsOptions } from 'astro';
 import { getCollection } from 'astro:content';
 import BaseLayout from '@/layouts/BaseLayout.astro';
@@ -19,21 +19,19 @@ export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
     return paginate(tagPosts, {
       params: { tag },
       props: { tagName },
-      pageSize: SITE.postPerPage,
+      pageSize: SITE.postPerPage.tags,
     });
   });
 }
 
-const params = Astro.params;
-const { tag } = params;
 const { page, tagName } = Astro.props;
 ---
 
-<BaseLayout title={`tags / ${tagName}`}>
-  <ContentLayout
-    pageTitle={[`Tag:`, `${tagName}`]}
-    titleTransition={`tag-${tag}`}
-  >
+<BaseLayout
+  title={`tags / ${tagName}`}
+  description={`Articles tagged "${tagName}" by Aayushmaan Soni.`}
+>
+  <ContentLayout pageTitle={[`tag:`, `${tagName}`]}>
     <ul>
       {
         page.data.map((post, index) => (

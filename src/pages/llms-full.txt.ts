@@ -1,10 +1,6 @@
-/**
- * LLMs-full.txt - Full content feed for AI/LLM ingestion
- * Contains complete article text for deep context understanding
- */
 import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
-import { SITE } from '@/site.config';
+import { SITE } from '@/config/site.config';
 import getSortedPosts from '@/utils/content/getSortedPosts';
 import getPostPath from '@/utils/content/getPostPath';
 import cleanMdxContent from '@/utils/text/cleanMdxContent';

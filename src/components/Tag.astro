@@ -1,46 +1,37 @@
 ---
-import { Icon } from 'astro-icon/components';
-
 export interface Props {
   tag: string;
   tagName: string;
   size?: 'sm' | 'lg';
-  enableTransition?: boolean;
 }
 
-const { tag, tagName, size = 'sm', enableTransition = false } = Astro.props;
-const transitionName = enableTransition ? `tag-${tag}` : undefined;
+const { tag, tagName, size = 'sm' } = Astro.props;
 ---
 
-<li
-  class:list={[
-    'inline-block',
-    {
-      'underline decoration-1 underline-offset-4': size === 'lg',
-    },
-  ]}
->
+<li class='inline-block'>
   <a
     href={`/tags/${tag}/`}
     class:list={[
-      'flex items-center pe-4 duration-200',
-      'text-accent hover:underline focus-visible:text-foreground-primary',
+      'group/tag flex items-center pe-4 text-accent duration-200 focus-visible:text-foreground-primary',
       size === 'sm' ? 'text-sm' : 'text-lg',
     ]}
   >
-    <Icon
-      name='tabler:hash'
+    <span
+      aria-hidden='true'
       class:list={[
-        'inline-block opacity-70 group-hover:opacity-100',
-        size === 'sm' ? '-me-0.5 size-3' : 'size-5',
+        'inline-block italic opacity-70 group-hover/tag:opacity-100',
+        size === 'sm' ? 'me-0.5' : 'me-1',
       ]}
-    />
-    {
-      transitionName ? (
-        <span transition:name={transitionName}>{tagName}</span>
-      ) : (
-        <span>{tagName}</span>
-      )
-    }
+    >
+      #
+    </span>
+    <span
+      class:list={[
+        'underline-offset-4',
+        size === 'lg' ? 'underline decoration-1' : 'group-hover/tag:underline',
+      ]}
+    >
+      {tagName}
+    </span>
   </a>
 </li>

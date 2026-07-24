@@ -1,6 +1,5 @@
 ---
-import { SITE } from '@/site.config';
-import { Icon } from 'astro-icon/components';
+import { SITE } from '@/config/site.config';
 
 const SHOW_BUTTON_SCROLL_PERCENTAGE = SITE.showScrollAtTopAt;
 ---
@@ -29,16 +28,16 @@ const SHOW_BUTTON_SCROLL_PERCENTAGE = SITE.showScrollAtTopAt;
         'scale-114 transition-transform',
       ]}></span>
 
-    <Icon
-      name='tabler:chevron-up'
-      class='inline-block text-foreground-primary md:hidden'
-      size='1.5rem'
-    />
+    <span
+      aria-hidden='true'
+      class='inline-block text-2xl leading-none text-foreground-primary md:hidden'
+      >↑</span
+    >
     <span
       class='sr-only flex items-center gap-1 text-sm group-hover:text-foreground-primary md:not-sr-only'
     >
-      <Icon name='tabler:arrow-narrow-up' class='inline-block size-4' />
-      Back To Top
+      <span aria-hidden='true'>↑</span>
+      back to top
     </span>
   </button>
 </div>

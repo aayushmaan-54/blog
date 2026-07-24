@@ -21,7 +21,6 @@ const tags = 'tags' in post.data ? post.data.tags : undefined;
 
 const headerPropsBaseClass = 'leading-tight tracking-tight';
 const isShortRead = collection === 'short_reads';
-const transitionName = slugifyStr(title);
 const postUrl = getPostPath(post.id, post.filePath, collection, post.data.slug);
 const pubDateLabel = new Date(pubDatetime).toLocaleDateString('en-US', {
   month: 'short',
@@ -40,12 +39,12 @@ const pubDateLabel = new Date(pubDatetime).toLocaleDateString('en-US', {
         href={postUrl}
         class='group block transition-colors hover:text-foreground-primary/90 focus-visible:no-underline focus-visible:underline-offset-0'
       >
-        <div class='flex flex-col gap-2 sm:flex-row'>
-          <span class='font-mono text-xs tracking-[0.24em] text-foreground-muted uppercase'>
+        <div class='flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-4'>
+          <span class='font-mono text-xs tracking-[0.24em] text-foreground-muted uppercase sm:w-24 sm:shrink-0'>
             {pubDateLabel}
           </span>
-          <h3 class='text-lg leading-tight tracking-tight hover:text-accent'>
-            <span transition:name={transitionName}>{title}</span>
+          <h3 class='text-lg leading-tight tracking-tight group-hover:text-accent'>
+            <span>{title}</span>
           </h3>
         </div>
       </a>
@@ -59,7 +58,7 @@ const pubDateLabel = new Date(pubDatetime).toLocaleDateString('en-US', {
                 'transition-colors hover:text-foreground-primary/90 focus-visible:no-underline focus-visible:underline-offset-0',
               ]}
             >
-              <span transition:name={transitionName}>{title}</span>
+              <span>{title}</span>
             </a>
           </h2>
         ) : (
@@ -69,25 +68,25 @@ const pubDateLabel = new Date(pubDatetime).toLocaleDateString('en-US', {
               'mb-2 text-xl font-medium hover:text-accent',
             ]}
           >
-            <a
-              href={postUrl}
-              class:list={[
-                'decoration-1 underline-offset-4 hover:underline focus-visible:no-underline focus-visible:underline-offset-0',
-              ]}
-            >
-              <span transition:name={transitionName}>{title}</span>
+            <a href={postUrl} class='transition-colors'>
+              <span>{title}</span>
             </a>
           </h3>
         )}
 
         {description && <p class='text-foreground-muted'>{description}</p>}
-        <div class='mt-2 flex flex-wrap items-center text-sm text-foreground-muted'>
+        <div class='mt-3 flex flex-wrap items-center gap-y-1 text-sm text-foreground-muted'>
           {tags && tags.length > 0 && (
-            <ul class='mb-1'>
-              {tags.map(tag => (
-                <Tag tag={slugifyStr(tag)} tagName={tag} />
-              ))}
-            </ul>
+            <>
+              <ul class='-me-4 flex flex-wrap items-center'>
+                {tags.map(tag => (
+                  <Tag tag={slugifyStr(tag)} tagName={tag} />
+                ))}
+              </ul>
+              <span aria-hidden='true' class='mx-2'>
+                ·
+              </span>
+            </>
           )}
           <PostMeta
             {pubDatetime}
@@ -99,5 +98,7 @@ const pubDateLabel = new Date(pubDatetime).toLocaleDateString('en-US', {
       </>
     )
   }
-  {showDivider && <hr class='mt-6 border-foreground-muted/10' />}
+  {!isShortRead && showDivider && (
+    <hr class='mt-6 border-foreground-muted/10' />
+  )}
 </li>

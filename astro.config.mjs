@@ -1,10 +1,8 @@
 import { unified } from '@astrojs/markdown-remark';
 import { defineConfig, envField, fontProviders } from 'astro/config';
-import icon from 'astro-icon';
 import tailwindcss from '@tailwindcss/vite';
 import sitemap from '@astrojs/sitemap';
 import mdx from '@astrojs/mdx';
-import { SITE } from './src/site.config';
 import {
   transformerNotationDiff,
   transformerNotationHighlight,
@@ -23,13 +21,7 @@ export default defineConfig({
   site: PUBLIC_SITE_URL,
   output: 'static',
 
-  integrations: [
-    icon(),
-    mdx(),
-    sitemap({
-      filter: page => SITE.showArchives || !page.endsWith('/archives'),
-    }),
-  ],
+  integrations: [mdx(), sitemap()],
 
   markdown: {
     processor: unified({
@@ -53,7 +45,7 @@ export default defineConfig({
       },
     }),
     shikiConfig: {
-      themes: { light: 'vitesse-light', dark: 'vitesse-dark' },
+      themes: { light: 'rose-pine-dawn', dark: 'vesper' },
       defaultColor: false,
       wrap: false,
       transformers: [
@@ -75,6 +67,7 @@ export default defineConfig({
   image: {
     responsiveStyles: true,
     layout: 'constrained',
+    remotePatterns: [{ protocol: 'https' }],
   },
 
   env: {
@@ -90,6 +83,10 @@ export default defineConfig({
         optional: true,
       }),
       PUBLIC_SITE_URL: envField.string({
+        access: 'public',
+        context: 'client',
+      }),
+      PORTFOLIO_URL: envField.string({
         access: 'public',
         context: 'client',
       }),

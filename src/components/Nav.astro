@@ -1,13 +1,11 @@
 ---
-import { SITE } from '@/site.config';
-
 const navLinks = [
-  { href: '/', label: 'Home', canShow: true },
-  { href: '/blogs', label: 'Blogs', canShow: true },
-  { href: '/short-reads', label: 'Short-Reads', canShow: SITE.showShortReads },
-  { href: '/tags', label: 'Tags', canShow: true },
-  { href: '/archives', label: 'Archives', canShow: SITE.showArchives },
-  { href: '/search', label: 'Search', canShow: true },
+  { href: '/', label: 'Home' },
+  { href: '/blogs', label: 'Blogs' },
+  { href: '/short-reads', label: 'Short-Reads' },
+  { href: '/tags', label: 'Tags' },
+  { href: '/archives', label: 'Archives' },
+  { href: '/search', label: 'Search' },
 ];
 
 const { pathname } = Astro.url;
@@ -25,9 +23,7 @@ const isActive = (path: string) => {
 <nav class='pt-8 pb-16 text-sm'>
   <ul class='flex flex-wrap gap-x-6 gap-y-1'>
     {
-      navLinks
-        .filter(link => link.canShow)
-        .map(link => (
+      navLinks.map(link => (
           <li class='group flex items-center justify-between'>
             <a
               href={link.href}

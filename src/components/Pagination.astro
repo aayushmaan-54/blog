@@ -2,7 +2,6 @@
 import type { Page } from 'astro';
 import type { CollectionEntry } from 'astro:content';
 import Link from './Link.astro';
-import { Icon } from 'astro-icon/components';
 
 export interface Props {
   page: Page<CollectionEntry<'blogs' | 'short_reads'>>;
@@ -13,15 +12,15 @@ const { page } = Astro.props;
 
 {
   page.lastPage > 1 && (
-    <nav class='mt-auto mb-8 flex justify-center' aria-label='Pagination'>
+    <nav class='mt-auto flex justify-center pt-12 mb-8' aria-label='Pagination'>
       <Link
         disabled={!page.url.prev}
         href={page.url.prev as string}
         class:list={['me-4 select-none', { 'opacity-50': !page.url.prev }]}
         ariaLabel='Previous'
       >
-        <Icon name='tabler:arrow-narrow-left' class='inline-block' />
-        Prev
+        <span aria-hidden='true' class='me-1'>←</span>
+        prev
       </Link>
       {page.currentPage} / {page.lastPage}
       <Link
@@ -30,8 +29,8 @@ const { page } = Astro.props;
         class:list={['ms-4 select-none', { 'opacity-50': !page.url.next }]}
         ariaLabel='Next'
       >
-        Next
-        <Icon name='tabler:arrow-narrow-right' class='inline-block' />
+        next
+        <span aria-hidden='true' class='ms-1'>→</span>
       </Link>
     </nav>
   )

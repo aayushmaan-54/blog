@@ -1,16 +1,10 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import ContentLayout from '@/layouts/ContentLayout.astro';
-import { SITE } from '@/site.config';
 import { getCollection } from 'astro:content';
 import groupPostsBy from '@/utils/content/groupPostsBy';
 import formatMonthDay from '@/utils/date/formatMonthDay';
-import { slugifyStr } from '@/utils/text/slugify';
 import getPostPath from '@/utils/content/getPostPath';
-
-if (!SITE.showArchives) {
-  return Astro.redirect('/404');
-}
 
 const blogs = await getCollection('blogs', ({ data }) => !data.draft);
 const shortReads = await getCollection(
@@ -20,9 +14,12 @@ const shortReads = await getCollection(
 const posts = [...blogs, ...shortReads];
 ---
 
-<BaseLayout title='archives'>
-  <ContentLayout pageTitle='Archives'>
-    <div class='mt-6 space-y-12'>
+<BaseLayout
+  title='archives'
+  description='A chronological archive of every article and short read.'
+>
+  <ContentLayout pageTitle='archives'>
+    <div class='mt-6 space-y-16'>
       {
         Object.entries(
           groupPostsBy(posts, post => post.data.pubDatetime.getFullYear()),
@@ -30,12 +27,12 @@ const posts = [...blogs, ...shortReads];
           .sort(([yearA], [yearB]) => Number(yearB) - Number(yearA))
           .map(([year, yearGroup]) => (
             <section>
-              <h2 class='mb-1 text-lg font-medium'>
+              <h2 class='mb-4 text-lg font-medium'>
                 {year}
                 <sup class='ml-1 text-xs'>{yearGroup.length}</sup>
               </h2>
 
-              <ul class='space-y-3'>
+              <ul class='space-y-4'>
                 {yearGroup
                   .sort(
                     (a, b) =>
@@ -44,7 +41,7 @@ const posts = [...blogs, ...shortReads];
                   )
                   .map(post => (
                     <li class='flex items-baseline gap-4'>
-                      <time class='shrink-0 text-sm text-foreground-muted tabular-nums'>
+                      <time class='w-16 shrink-0 text-sm text-foreground-muted tabular-nums'>
                         {formatMonthDay(post.data.pubDatetime)}
                       </time>
 
@@ -57,14 +54,12 @@ const posts = [...blogs, ...shortReads];
                         )}
                         class='underline decoration-1 underline-offset-4 transition-colors hover:text-foreground-secondary/90'
                       >
-                        <span transition:name={slugifyStr(post.data.title)}>
-                          {post.data.title}
-                        </span>
+                        <span>{post.data.title}</span>
                       </a>
 
                       {post.collection === 'short_reads' && (
                         <span class='shrink-0 rounded bg-foreground-muted/20 px-2 py-0.5 text-xs font-medium'>
-                          Short Read
+                          short read
                         </span>
                       )}
                     </li>

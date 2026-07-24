@@ -1,8 +1,8 @@
 export default function getReadingTime(text: string, wpm = 200) {
   let content = text;
 
-  content = content.replace(/^---[\s\S]*?---/m, '');
-  content = content.replace(/^\+\+\+[\s\S]*?\+\+\+/m, '');
+  content = content.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '');
+  content = content.replace(/^\+\+\+\r?\n[\s\S]*?\r?\n\+\+\+\r?\n?/, '');
 
   content = content.replace(/```[\s\S]*?```/g, '');
 

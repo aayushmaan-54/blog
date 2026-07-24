@@ -1,23 +1,14 @@
----
-import { Icon } from 'astro-icon/components';
-import { SITE } from '@/site.config';
----
-
-{
-  SITE.showBackButton ? (
-    <a
-      id='back-button'
-      href='/'
-      class='flex w-fit items-center justify-start gap-1 px-2 text-foreground-primary/75 underline underline-offset-4 transition-colors hover:text-foreground-primary'
-    >
-      <Icon name='tabler:chevron-left' />
-      Go back
-    </a>
-  ) : null
-}
+<a
+  id='back-button'
+  href='/'
+  class='flex w-fit items-center justify-start gap-1 px-2 text-foreground-primary/75 transition-colors hover:text-foreground-primary'
+>
+  <span aria-hidden='true'>←</span>
+  <span class='underline underline-offset-4'>go back</span>
+</a>
 
 <script>
-  import { SITE } from '@/site.config';
+  import { SITE } from '@/config/site.config';
 
   const STORAGE_KEY = SITE.browserStorage.backUrl;
 
@@ -47,6 +38,6 @@ import { SITE } from '@/site.config';
     }
   };
 
-  document.addEventListener('astro:page-load', updateGoBackUrl);
+  updateGoBackUrl();
   window.addEventListener('storage', handleStorageChange);
 </script>

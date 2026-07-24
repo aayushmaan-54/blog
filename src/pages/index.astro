@@ -1,63 +1,106 @@
 ---
 import PostLink from '@/components/PostLink.astro';
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import { SITE } from '@/site.config';
+import { SITE } from '@/config/site.config';
 import getSortedPosts from '@/utils/content/getSortedPosts';
 import { getCollection } from 'astro:content';
 
-const posts = await getCollection('blogs');
+const blogs = await getCollection('blogs');
 const shorts = await getCollection('short_reads');
-const allPosts = [...posts, ...shorts];
 
-const sortedPosts = getSortedPosts(allPosts);
-const featuredPosts = sortedPosts.filter(({ data }) => data.featured);
-const recentPosts = sortedPosts.filter(({ data }) => !data.featured);
+const sortedBlogs = getSortedPosts(blogs);
+const sortedShorts = getSortedPosts(shorts);
+
+const featuredPosts = sortedBlogs.filter(({ data }) => data.featured);
+const recentBlogs = sortedBlogs
+  .filter(({ data }) => !data.featured)
+  .slice(0, SITE.postPerIndex);
+const recentShorts = sortedShorts.slice(0, SITE.postPerIndex);
+
+const hasRecent = recentBlogs.length > 0 || recentShorts.length > 0;
 ---
 
-<BaseLayout title='home'>
-  <main>
+<BaseLayout title={SITE.title}>
+  <main class='pb-20'>
     {
       featuredPosts.length > 0 && (
-        <>
-          <section id='featured' class='space-y-12'>
-            <h2 class='mb-4 font-mono text-xs font-extralight tracking-tight text-accent lowercase'>
-              // Featured
-            </h2>
-            <ul>
-              {featuredPosts.map((post, index) => (
-                <PostLink
-                  variant='h3'
-                  post={post}
-                  showDivider={index !== featuredPosts.length - 1}
-                />
-              ))}
-            </ul>
-          </section>
-        </>
+        <section id='featured' class='mb-16'>
+          <h2 class='mb-4 flex items-center gap-3 font-mono text-xs font-extralight tracking-tight text-foreground-muted lowercase'>
+            <span>// featured</span>
+            <span class='h-px flex-1 bg-foreground-muted/15' aria-hidden='true' />
+          </h2>
+          <ul>
+            {featuredPosts.map((post, index) => (
+              <PostLink
+                variant='h3'
+                post={post}
+                showDivider={index !== featuredPosts.length - 1}
+              />
+            ))}
+          </ul>
+        </section>
       )
     }
 
     {
-      recentPosts.length > 0 && (
-        <section id='recent-posts' class='pb-6'>
-          <h2 class='mb-4 font-mono text-xs font-extralight tracking-tight text-accent lowercase'>
-            // Recent-Writings
+      hasRecent && (
+        <section id='recent-writings'>
+          <h2 class='mb-8 flex items-center gap-3 font-mono text-xs font-extralight tracking-tight text-foreground-muted lowercase'>
+            <span>// recent-writings</span>
+            <span class='h-px flex-1 bg-foreground-muted/15' aria-hidden='true' />
           </h2>
-          <ul>
-            {recentPosts.map(
-              (post, index) =>
-                index < SITE.postPerIndex && (
+
+          {recentBlogs.length > 0 && (
+            <div class='mb-12'>
+              <div class='mb-4 flex items-baseline justify-between gap-4'>
+                <h3 class='flex items-baseline gap-2 font-mono text-base tracking-tight lowercase'>
+                  <span class='text-accent'>01</span>
+                  <span class='text-foreground-primary'>blogs</span>
+                </h3>
+                <a
+                  href='/blogs'
+                  class='font-mono text-xs text-foreground-muted lowercase underline-offset-4 transition-colors hover:text-foreground-primary hover:underline'
+                >
+                  view all →
+                </a>
+              </div>
+              <ul>
+                {recentBlogs.map((post, index) => (
                   <PostLink
                     variant='h3'
                     post={post}
-                    showDivider={
-                      index !==
-                      Math.min(recentPosts.length, SITE.postPerIndex) - 1
-                    }
+                    showDivider={index !== recentBlogs.length - 1}
                   />
-                ),
-            )}
-          </ul>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {recentShorts.length > 0 && (
+            <div>
+              <div class='mb-4 flex items-baseline justify-between gap-4'>
+                <h3 class='flex items-baseline gap-2 font-mono text-base tracking-tight lowercase'>
+                  <span class='text-accent'>02</span>
+                  <span class='text-foreground-primary'>short-reads</span>
+                </h3>
+                <a
+                  href='/short-reads'
+                  class='font-mono text-xs text-foreground-muted lowercase underline-offset-4 transition-colors hover:text-foreground-primary hover:underline'
+                >
+                  view all →
+                </a>
+              </div>
+              <ul>
+                {recentShorts.map((post, index) => (
+                  <PostLink
+                    variant='h3'
+                    post={post}
+                    showDivider={index !== recentShorts.length - 1}
+                  />
+                ))}
+              </ul>
+            </div>
+          )}
         </section>
       )
     }

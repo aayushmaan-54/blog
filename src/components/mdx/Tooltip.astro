@@ -4,23 +4,27 @@ interface Props {
 }
 
 const { note } = Astro.props;
+const tipId = `tt-${crypto.randomUUID().slice(0, 8)}`;
 ---
 
-<span class='relative inline-block'>
-  <span
-    class='tooltip-trigger group relative inline-flex cursor-help items-baseline border-b border-dotted border-foreground-muted'
+<span class='group relative inline-block'>
+  <button
+    type='button'
+    class='tooltip-trigger inline-flex cursor-help items-baseline border-b border-dotted border-foreground-muted p-0 align-baseline text-inherit'
+    aria-describedby={tipId}
   >
     <slot /><span
       class='mr-0.5 ml-0.5 align-super text-[0.75em] opacity-60'
       aria-hidden='true'>*</span
     >
+  </button>
 
-    <span
-      class='tooltip-content pointer-events-none invisible absolute bottom-full left-1/2 z-50 mb-2 w-max max-w-80 -translate-x-1/2 rounded-md border border-border bg-secondary px-3 py-2 text-left text-[0.8125rem] leading-relaxed text-foreground-primary opacity-0 shadow-lg transition-[opacity,visibility] duration-150 group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100 max-sm:fixed max-sm:right-4 max-sm:bottom-4 max-sm:left-4 max-sm:mb-0 max-sm:w-auto max-sm:max-w-none max-sm:translate-x-0'
-      role='tooltip'
-    >
-      {note}
-    </span>
+  <span
+    id={tipId}
+    role='tooltip'
+    class='tooltip-content pointer-events-none invisible absolute bottom-full left-1/2 z-50 mb-2 w-max max-w-80 -translate-x-1/2 rounded-md border border-border bg-secondary px-3 py-2 text-left text-[0.8125rem] leading-relaxed font-normal text-foreground-primary opacity-0 shadow-lg transition-[opacity,visibility] duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 max-sm:fixed max-sm:right-4 max-sm:bottom-4 max-sm:left-4 max-sm:mb-0 max-sm:w-auto max-sm:max-w-none max-sm:translate-x-0'
+  >
+    {note}
   </span>
 </span>
 

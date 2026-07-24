@@ -2,25 +2,24 @@
 import Hr from './Hr.astro';
 import Link from './Link.astro';
 import Socials from './Socials.astro';
-import { Icon } from 'astro-icon/components';
 
 const currentYear = new Date().getFullYear();
 ---
 
-<footer class='mx-auto w-full max-w-app'>
+<footer class='mx-auto mt-16 w-full max-w-app'>
   <Hr noPadding={true} />
   <div
     class='flex flex-col items-center justify-between gap-4 py-8 sm:flex-row sm:gap-6'
   >
-    <div class='flex items-center gap-4'>
-      <Socials centered />
+    <div class='flex flex-wrap items-center justify-center gap-x-3 gap-y-1'>
+      <Socials />
       <Link
         href='/rss.xml'
-        class='opacity-75 transition-opacity hover:opacity-100'
+        class='font-mono text-sm text-foreground-muted opacity-75 transition-opacity hover:opacity-100'
         ariaLabel='RSS Feed'
         title='Subscribe via RSS'
       >
-        <Icon name='tabler:rss' />
+        [rss]
       </Link>
     </div>
 
@@ -28,7 +27,7 @@ const currentYear = new Date().getFullYear();
       class='flex flex-col items-center gap-1 text-center text-sm sm:flex-row sm:gap-2'
     >
       <span class='text-foreground-muted'>
-        &copy; {currentYear} All rights reserved
+        &copy; {currentYear} all rights reserved
       </span>
     </div>
   </div>
