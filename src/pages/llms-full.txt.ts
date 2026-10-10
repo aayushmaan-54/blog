@@ -12,9 +12,7 @@ const MAX_WORDS_PER_POST = 3000;
 
 export const GET: APIRoute = async () => {
   const blogs = await getCollection('blogs');
-  const shorts = await getCollection('short_reads');
-  const allPosts = [...blogs, ...shorts];
-  const sortedPosts = getSortedPosts(allPosts).slice(0, FULL_POSTS_LIMIT);
+  const sortedPosts = getSortedPosts(blogs).slice(0, FULL_POSTS_LIMIT);
 
   const siteUrl = SITE.website;
 
@@ -27,12 +25,7 @@ export const GET: APIRoute = async () => {
   ];
 
   for (const post of sortedPosts) {
-    const postPath = getPostPath(
-      post.id,
-      post.filePath,
-      post.collection,
-      post.data.slug,
-    );
+    const postPath = getPostPath(post);
     const postUrl = `${siteUrl}${postPath}`;
 
     const rawContent = post.body || '';
@@ -43,19 +36,17 @@ export const GET: APIRoute = async () => {
       postUrl,
     );
 
-    const type = post.collection === 'blogs' ? 'Blog' : 'Short Read';
     const postLines: string[] = [
       '---',
       '',
       `# ${post.data.title}`,
       '',
-      `> Type: ${type}`,
       `> URL: ${postUrl}`,
       `> Published: ${formatShortDate(post.data.pubDatetime)}`,
       `> Author: ${post.data.author}`,
     ];
 
-    if (post.collection === 'blogs' && post.data.tags) {
+    if (post.data.tags.length > 0) {
       postLines.push(`> Tags: ${post.data.tags.join(', ')}`);
     }
 

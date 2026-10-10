@@ -3,15 +3,12 @@ import { getCollection } from 'astro:content';
 import { SITE } from '@/config/site.config';
 import getSortedPosts from '@/utils/content/getSortedPosts';
 import getPostPath from '@/utils/content/getPostPath';
-import formatShortDate from '@/utils/date/formatShortDate';
 
 const RECENT_POSTS_LIMIT = 20;
 
 export const GET: APIRoute = async () => {
   const blogs = await getCollection('blogs');
-  const shorts = await getCollection('short_reads');
-  const allPosts = [...blogs, ...shorts];
-  const sortedPosts = getSortedPosts(allPosts).slice(0, RECENT_POSTS_LIMIT);
+  const sortedPosts = getSortedPosts(blogs).slice(0, RECENT_POSTS_LIMIT);
 
   const siteUrl = SITE.website;
 
@@ -25,7 +22,6 @@ export const GET: APIRoute = async () => {
     `- [Archives](${siteUrl}/archives)`,
     `- [Tags](${siteUrl}/tags)`,
     `- [Blogs](${siteUrl}/blogs)`,
-    `- [Short Reads](${siteUrl}/short-reads)`,
     `- [Search](${siteUrl}/search)`,
     '',
     '## Recent Posts',
@@ -33,22 +29,10 @@ export const GET: APIRoute = async () => {
   ];
 
   for (const post of sortedPosts) {
-    const postPath = getPostPath(
-      post.id,
-      post.filePath,
-      post.collection,
-      post.data.slug,
-    );
+    const postPath = getPostPath(post);
     const postUrl = `${siteUrl}${postPath}`;
-    const date = formatShortDate(post.data.pubDatetime);
-    const type = post.collection === 'blogs' ? 'Blog' : 'Short Read';
 
-    const description =
-      post.collection === 'short_reads'
-        ? `Short reads: ${post.data.title} - ${date}`
-        : post.data.description;
-
-    lines.push(`- [${type}] [${post.data.title}](${postUrl}): ${description}`);
+    lines.push(`- [${post.data.title}](${postUrl}): ${post.data.description}`);
   }
 
   lines.push('');

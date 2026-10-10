@@ -45,7 +45,7 @@ export default defineConfig({
       },
     }),
     shikiConfig: {
-      themes: { light: 'rose-pine-dawn', dark: 'vesper' },
+      themes: { light: 'github-light', dark: 'vesper' },
       defaultColor: false,
       wrap: false,
       transformers: [

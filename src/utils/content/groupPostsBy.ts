@@ -7,10 +7,10 @@ interface GroupFunction<T> {
 }
 
 const groupPostsBy = (
-  posts: CollectionEntry<'blogs' | 'short_reads'>[],
-  groupFunction: GroupFunction<CollectionEntry<'blogs' | 'short_reads'>>,
+  posts: CollectionEntry<'blogs'>[],
+  groupFunction: GroupFunction<CollectionEntry<'blogs'>>,
 ) => {
-  const result: Record<GroupKey, CollectionEntry<'blogs' | 'short_reads'>[]> =
+  const result: Record<GroupKey, CollectionEntry<'blogs'>[]> =
     {};
 
   for (let i = 0; i < posts.length; i++) {

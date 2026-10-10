@@ -29,6 +29,7 @@ Deep-dives on backend engineering, distributed systems, and how things actually 
 | ♿ **Accessible & SEO-First** | Semantic HTML, full OG/Twitter tags, and JSON-LD (`BlogPosting`, `WebSite`, `BreadcrumbList`) |
 | ✍️ **MDX Support** | Write posts in Markdown with custom components — `Callout`, `Tooltip`, optimized images |
 | 💻 **Rich Code Blocks** | Shiki highlighting with filenames, line/word highlight, diff notation, and copy buttons |
+| 📚 **Series** | Group posts into ordered multi-part series with a parts list, previous/next links, and `/series` pages |
 | 📝 **Drafts** | Hide work-in-progress with `draft: true`, or exclude whole folders with a `_` prefix |
 | 📄 **Pagination** | Clean, numbered pagination for listings |
 | 🔒 **Type-Safe** | End-to-end TypeScript with Zod-validated frontmatter |
@@ -66,8 +67,7 @@ blog/
 │   ├── config/                   # site.config.ts, content.config.ts, socials.config.ts
 │   ├── content/
 │   │   └── writing/
-│   │       ├── blogs/            # Long-form posts (.md/.mdx)
-│   │       └── short-reads/      # Quick notes and thoughts
+│   │       └── blogs/            # Posts (.md/.mdx)
 │   ├── content.config.ts         # Re-exports collections from config/ (Astro's required discovery path)
 │   ├── layouts/                  # BaseLayout (SEO/head), ContentLayout
 │   ├── pages/                    # File-based routes + rss.xml / robots.txt / llms.txt / og.png endpoints
@@ -119,7 +119,7 @@ Copy `.env.example` to `.env` and fill it in. The environment schema is defined 
 Site-wide settings live in **`src/config/`**:
 
 - **`site.config.ts`** — author, title, description, pagination sizes, timezone, storage keys, Twitter handle.
-- **`content.config.ts`** — content collection schemas (Zod) and the `blogs` / `short-reads` glob patterns.
+- **`content.config.ts`** — content collection schemas (Zod) and the `blogs` glob pattern.
 - **`socials.config.ts`** — social links.
 
 ```typescript
@@ -129,7 +129,7 @@ export const SITE = {
   author: 'Aayushmaan Soni',
   title: 'Aayushmaan Soni',
   description: '…',
-  postPerPage: { blogs: 4, shortReads: 4, tags: 4 },
+  postPerPage: { blogs: 4, tags: 4 },
   // …more options
 } as const;
 ```
@@ -138,7 +138,7 @@ export const SITE = {
 
 ## 📝 Writing Posts
 
-Create a new `.md` / `.mdx` file in `src/content/writing/blogs/` or `src/content/writing/short-reads/` and add frontmatter. New MDX components go in `src/components/mdx/` and are registered in `src/components/mdx/index.ts`.
+Create a new `.md` / `.mdx` file in `src/content/writing/blogs/` and add frontmatter. New MDX components go in `src/components/mdx/` and are registered in `src/components/mdx/index.ts`.
 
 ### Frontmatter
 
@@ -148,18 +148,18 @@ Validated against the Zod schema in `src/config/content.config.ts`.
 |-------|------|:--------:|-------|
 | `title` | string | ✅ | |
 | `pubDatetime` | date | ✅ | Publish date (ISO, e.g. `2026-04-28T10:00:00+05:30`) |
-| `description` | string | ✅ *(blogs)* | Used for SEO / social cards |
+| `description` | string | ✅ | Used for SEO / social cards |
 | `author` | string | — | Defaults to the site author |
 | `modDatetime` | date | — | Last-updated date |
 | `draft` | boolean | — | Default `false` — see below |
-| `featured` | boolean | — | *(blogs only)* pins the post to the **Featured** section on the home page |
-| `tags` | string[] | — | Default `['others']` *(blogs only)* |
-| `slug` | string | — | Override the auto-generated URL slug |
-| `ogImage` | image \| string | — | *(blogs only)* custom social image; otherwise one is auto-generated |
+| `featured` | boolean | — | pins the post to the **Featured** section on the home page |
+| `tags` | string[] | — | Default `['others']` |
+| `series` | string | — | Series name; groups the post into `/series/<slug>` with in-post navigation |
+| `seriesOrder` | number | — | Part number within the series; falls back to publish date |
+| `slug` | string | ✅ | URL path after `/blogs/`. Lowercase letters, numbers, `-` and `/` only; must be unique. Folders don't affect URLs. |
+| `ogImage` | image \| string | — | Custom social image; otherwise one is auto-generated |
 | `canonicalURL` | string | — | Override the canonical URL |
 | `timezone` | string | — | Override the site timezone for this post's dates |
-
-*Short-reads* use the same core fields but **without** `featured`, `description`, `tags`, or `ogImage`.
 
 ### Hiding & scheduling content
 

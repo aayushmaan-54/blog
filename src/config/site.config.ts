@@ -12,11 +12,10 @@ export const SITE = {
     backUrl: 'ams/blog/back-url',
     theme: 'ams/blog/theme',
   },
-  postPerIndex: 4,
+  postPerIndex: 5,
   postPerPage: {
-    blogs: 4,
-    shortReads: 4,
-    tags: 4,
+    blogs: 5,
+    tags: 5,
   },
   scheduledPostMargin: 15 * 60 * 1000, // 15 minutes
   showScrollAtTopAt: 0.25, // 25% of scroll

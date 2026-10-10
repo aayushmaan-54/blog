@@ -1,0 +1,51 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import getPostPath from '@/utils/content/getPostPath';
+
+export interface Props {
+  post: CollectionEntry<'blogs'>;
+  parts: CollectionEntry<'blogs'>[];
+}
+
+const { post, parts } = Astro.props;
+const currentIndex = parts.findIndex(part => part.id === post.id);
+const prev = parts[currentIndex - 1];
+const next = parts[currentIndex + 1];
+
+const cardClass =
+  'group flex flex-col gap-1 rounded border border-border px-4 py-3 transition-colors hover:border-foreground-muted';
+---
+
+{
+  (prev || next) && (
+    <nav
+      aria-label='Series navigation'
+      class='mt-12 grid gap-4 sm:grid-cols-2'
+      data-pagefind-ignore
+    >
+      {prev && (
+        <a href={getPostPath(prev)} class={cardClass}>
+          <span class='font-mono text-xs text-foreground-muted lowercase'>
+            ← previous
+          </span>
+          <span class='text-foreground-primary group-hover:text-accent'>
+            {prev.data.title}
+          </span>
+        </a>
+      )}
+      {next && (
+        <a
+          href={getPostPath(next)}
+          class:list={[cardClass, 'sm:col-start-2 sm:text-right']}
+        >
+          <span class='font-mono text-xs text-foreground-muted lowercase'>
+            next →
+          </span>
+          <span class='text-foreground-primary group-hover:text-accent'>
+            {next.data.title}
+          </span>
+        </a>
+      )}
+    </nav>
+  )
+}

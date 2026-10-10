@@ -1,10 +1,11 @@
 import type { ShikiTransformer } from 'shiki';
 
+const UNLABELED_LANGS = new Set(['', 'text', 'txt', 'plaintext', 'ansi']);
+
 const transformerFileName = (): ShikiTransformer => ({
   name: 'shiki-transformer-filename',
   pre(node) {
-    const raw = this.options.meta?.__raw?.split(' ');
-    if (!raw) return;
+    const raw = this.options.meta?.__raw?.split(' ') ?? [];
 
     const metaMap = new Map<string, string>();
     for (const item of raw) {
@@ -13,8 +14,10 @@ const transformerFileName = (): ShikiTransformer => ({
       metaMap.set(key, value.replace(/["'`]/g, ''));
     }
 
-    const file = metaMap.get('file');
-    if (!file) return;
+    const lang = this.options.lang?.toLowerCase() ?? '';
+    const label =
+      metaMap.get('file') ?? (UNLABELED_LANGS.has(lang) ? undefined : lang);
+    if (!label) return;
 
     this.addClassToHast(
       node,
@@ -33,7 +36,7 @@ const transformerFileName = (): ShikiTransformer => ({
           'dark:text-[var(--shiki-dark)] dark:bg-[var(--shiki-dark-bg)]',
         ].join(' '),
       },
-      children: [{ type: 'text', value: file }],
+      children: [{ type: 'text', value: label }],
     });
   },
 });

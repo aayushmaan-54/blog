@@ -6,17 +6,12 @@ import groupPostsBy from '@/utils/content/groupPostsBy';
 import formatMonthDay from '@/utils/date/formatMonthDay';
 import getPostPath from '@/utils/content/getPostPath';
 
-const blogs = await getCollection('blogs', ({ data }) => !data.draft);
-const shortReads = await getCollection(
-  'short_reads',
-  ({ data }) => !data.draft,
-);
-const posts = [...blogs, ...shortReads];
+const posts = await getCollection('blogs', ({ data }) => !data.draft);
 ---
 
 <BaseLayout
   title='archives'
-  description='A chronological archive of every article and short read.'
+  description='A chronological archive of every article.'
 >
   <ContentLayout pageTitle='archives'>
     <div class='mt-6 space-y-16'>
@@ -46,22 +41,11 @@ const posts = [...blogs, ...shortReads];
                       </time>
 
                       <a
-                        href={getPostPath(
-                          post.id,
-                          post.filePath,
-                          post.collection,
-                          post.data.slug,
-                        )}
+                        href={getPostPath(post)}
                         class='underline decoration-1 underline-offset-4 transition-colors hover:text-foreground-secondary/90'
                       >
                         <span>{post.data.title}</span>
                       </a>
-
-                      {post.collection === 'short_reads' && (
-                        <span class='shrink-0 rounded bg-foreground-muted/20 px-2 py-0.5 text-xs font-medium'>
-                          short read
-                        </span>
-                      )}
                     </li>
                   ))}
               </ul>

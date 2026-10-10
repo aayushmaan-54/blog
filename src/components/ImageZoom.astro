@@ -1,0 +1,69 @@
+<dialog
+  id='image-zoom'
+  autofocus
+  aria-label='Zoomed image'
+  class='m-0 h-dvh max-h-none w-screen max-w-none cursor-zoom-out bg-transparent p-0 outline-none backdrop:bg-primary/95'
+>
+  <div class='flex h-full w-full overflow-auto p-4'>
+    <img alt='' class='m-auto object-contain' />
+  </div>
+  <button
+    type='button'
+    class='fixed end-4 top-4 rounded border border-border bg-primary px-2 py-1 font-mono text-xs text-foreground-primary'
+  >
+    close
+  </button>
+</dialog>
+
+<script>
+  const getLargestSrc = (img: HTMLImageElement) => {
+    const candidates = img.srcset
+      .split(',')
+      .map(entry => {
+        const [url, size] = entry.trim().split(/\s+/);
+        return { url, width: parseFloat(size ?? '') || 0 };
+      })
+      .filter(({ url }) => url);
+    if (!candidates.length) return img.currentSrc || img.src;
+    return candidates.reduce((a, b) => (b.width > a.width ? b : a)).url;
+  };
+
+  const sizeZoomed = (zoomed: HTMLImageElement, source: HTMLImageElement) => {
+    const fitsScreen = window.innerWidth >= 768;
+    zoomed.classList.toggle('max-w-full', fitsScreen);
+    zoomed.classList.toggle('max-h-full', fitsScreen);
+    zoomed.classList.toggle('max-w-none', !fitsScreen);
+    zoomed.style.width = '';
+    if (fitsScreen) return;
+
+    const natural = source.naturalWidth > 300 ? source.naturalWidth : 1000;
+    const width = Math.max(
+      window.innerWidth - 32,
+      Math.min(natural, window.innerWidth * 2.5),
+    );
+    zoomed.style.width = `${width}px`;
+  };
+
+  const initImageZoom = () => {
+    const dialog = document.getElementById('image-zoom') as HTMLDialogElement;
+    const zoomed = dialog?.querySelector('img');
+    if (!dialog || !zoomed) return;
+
+    const images = document.querySelectorAll<HTMLImageElement>('#article img');
+    for (const img of images) {
+      if (img.closest('a')) continue;
+      img.classList.add('cursor-zoom-in');
+      img.addEventListener('click', () => {
+        zoomed.src = getLargestSrc(img);
+        zoomed.alt = img.alt;
+        sizeZoomed(zoomed, img);
+        dialog.showModal();
+      });
+    }
+
+    dialog.addEventListener('click', () => dialog.close());
+    dialog.addEventListener('close', () => zoomed.removeAttribute('src'));
+  };
+
+  initImageZoom();
+</script>

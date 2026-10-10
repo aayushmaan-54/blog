@@ -5,35 +5,31 @@ import PostMeta from '@/components/PostMeta.astro';
 import BackButton from '@/components/BackButton.astro';
 import BackToTopButton from '@/components/BackToTopButton.astro';
 import Tag from '@/components/Tag.astro';
+import SeriesOverview from '@/components/SeriesOverview.astro';
+import SeriesPager from '@/components/SeriesPager.astro';
+import TableOfContents from '@/components/TableOfContents.astro';
+import ImageZoom from '@/components/ImageZoom.astro';
+import RelatedPosts from '@/components/RelatedPosts.astro';
 import { slugifyStr } from '@/utils/text/slugify';
 import getPostPath from '@/utils/content/getPostPath';
+import assertUniqueSlugs from '@/utils/content/assertUniqueSlugs';
 import { components } from '@/components/mdx';
+import { getPostsBySeries } from '@/utils/content/getSeries';
 
 export interface Props {
   post: CollectionEntry<'blogs'>;
 }
 
 export async function getStaticPaths() {
-  const blogs = await getCollection('blogs', ({ data }) => !data.draft);
-  const postResult = blogs.map(blog => {
-    const fullPath = getPostPath(
-      blog.id,
-      blog.filePath,
-      blog.collection,
-      blog.data.slug,
-    );
+  const blogs = await getCollection('blogs');
+  assertUniqueSlugs(blogs);
 
-    const slug = fullPath.replace('/blogs/', '');
-
-    return {
-      params: {
-        slug,
-      },
+  return blogs
+    .filter(({ data }) => !data.draft)
+    .map(blog => ({
+      params: { slug: blog.data.slug },
       props: { post: blog },
-    };
-  });
-
-  return postResult;
+    }));
 }
 
 const { post } = Astro.props;
@@ -48,9 +44,14 @@ const {
   description,
   tags,
   ogImage: initOgImage,
+  series,
 } = post.data;
 
-const { Content } = await render(post);
+const seriesParts = series
+  ? getPostsBySeries(await getCollection('blogs'), slugifyStr(series))
+  : [];
+
+const { Content, headings } = await render(post);
 
 let ogImageUrl: string | undefined;
 
@@ -61,12 +62,7 @@ if (typeof initOgImage === 'string') {
 }
 
 if (!ogImageUrl) {
-  ogImageUrl = `${getPostPath(
-    post.id,
-    post.filePath,
-    post.collection,
-    post.data.slug,
-  )}/og.png`;
+  ogImageUrl = `${getPostPath(post)}/og.png`;
 }
 
 const ogImage = ogImageUrl
@@ -95,9 +91,11 @@ const layoutProps = {
 
   <main
     id='main-content'
-    class:list={['mx-auto w-full max-w-app px-4 pb-12']}
+    class:list={['relative mx-auto w-full max-w-app pb-12']}
     data-pagefind-body
   >
+    <TableOfContents {headings} />
+
     <h1
       class='inline-block text-2xl font-semibold text-foreground-primary sm:text-3xl'
     >
@@ -126,6 +124,8 @@ const layoutProps = {
       }
     </div>
 
+    {seriesParts.length > 0 && <SeriesOverview {post} parts={seriesParts} />}
+
     <article
       id='article'
       class='app-prose mx-auto mt-8 max-w-app prose-pre:bg-(--shiki-light-bg) dark:prose-pre:bg-(--shiki-dark-bg)'
@@ -133,13 +133,19 @@ const layoutProps = {
       <Content components={components} />
     </article>
 
+    {seriesParts.length > 0 && <SeriesPager {post} parts={seriesParts} />}
+
+    <RelatedPosts {post} />
+
     <hr class='my-8 border-dashed' />
 
     <BackToTopButton />
-    <div class='mb-4 -ml-4'>
+    <div class='mb-4'>
       <BackButton />
     </div>
   </main>
+
+  <ImageZoom />
 </BaseLayout>
 
 <template id='clipboard-icon-template'>copy</template>

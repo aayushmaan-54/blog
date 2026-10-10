@@ -7,98 +7,65 @@ import getPostPath from '@/utils/content/getPostPath';
 
 export interface Props {
   variant?: 'h2' | 'h3';
-  post: CollectionEntry<'blogs' | 'short_reads'>;
+  post: CollectionEntry<'blogs'>;
   showDivider?: boolean;
 }
 
 const { variant = 'h2', post, showDivider = true } = Astro.props;
 
-const { collection } = post;
-const { title, pubDatetime, modDatetime, timezone } = post.data;
-const description =
-  'description' in post.data ? post.data.description : undefined;
-const tags = 'tags' in post.data ? post.data.tags : undefined;
+const { title, description, tags, pubDatetime, modDatetime, timezone } =
+  post.data;
 
 const headerPropsBaseClass = 'leading-tight tracking-tight';
-const isShortRead = collection === 'short_reads';
-const postUrl = getPostPath(post.id, post.filePath, collection, post.data.slug);
-const pubDateLabel = new Date(pubDatetime).toLocaleDateString('en-US', {
-  month: 'short',
-  day: 'numeric',
-});
+const postUrl = getPostPath(post);
 ---
 
-<li
-  class={isShortRead
-    ? 'border-b border-foreground-muted/10 py-4 last:border-b-0 last:pb-0'
-    : 'my-8 mt-6 mb-16'}
->
+<li class='my-8 mt-6 mb-16'>
   {
-    isShortRead ? (
-      <a
-        href={postUrl}
-        class='group block transition-colors hover:text-foreground-primary/90 focus-visible:no-underline focus-visible:underline-offset-0'
-      >
-        <div class='flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-4'>
-          <span class='font-mono text-xs tracking-[0.24em] text-foreground-muted uppercase sm:w-24 sm:shrink-0'>
-            {pubDateLabel}
-          </span>
-          <h3 class='text-lg leading-tight tracking-tight group-hover:text-accent'>
-            <span>{title}</span>
-          </h3>
-        </div>
-      </a>
+    variant === 'h2' ? (
+      <h2 class:list={[headerPropsBaseClass, 'mb-2 text-3xl font-bold']}>
+        <a
+          href={postUrl}
+          class:list={[
+            'transition-colors hover:text-foreground-primary/90 focus-visible:no-underline focus-visible:underline-offset-0',
+          ]}
+        >
+          <span>{title}</span>
+        </a>
+      </h2>
     ) : (
-      <>
-        {variant === 'h2' ? (
-          <h2 class:list={[headerPropsBaseClass, 'mb-2 text-3xl font-bold']}>
-            <a
-              href={postUrl}
-              class:list={[
-                'transition-colors hover:text-foreground-primary/90 focus-visible:no-underline focus-visible:underline-offset-0',
-              ]}
-            >
-              <span>{title}</span>
-            </a>
-          </h2>
-        ) : (
-          <h3
-            class:list={[
-              headerPropsBaseClass,
-              'mb-2 text-xl font-medium hover:text-accent',
-            ]}
-          >
-            <a href={postUrl} class='transition-colors'>
-              <span>{title}</span>
-            </a>
-          </h3>
-        )}
-
-        {description && <p class='text-foreground-muted'>{description}</p>}
-        <div class='mt-3 flex flex-wrap items-center gap-y-1 text-sm text-foreground-muted'>
-          {tags && tags.length > 0 && (
-            <>
-              <ul class='-me-4 flex flex-wrap items-center'>
-                {tags.map(tag => (
-                  <Tag tag={slugifyStr(tag)} tagName={tag} />
-                ))}
-              </ul>
-              <span aria-hidden='true' class='mx-2'>
-                ·
-              </span>
-            </>
-          )}
-          <PostMeta
-            {pubDatetime}
-            {modDatetime}
-            {timezone}
-            text={post.body || ''}
-          />
-        </div>
-      </>
+      <h3
+        class:list={[
+          headerPropsBaseClass,
+          'mb-2 text-xl font-medium hover:text-accent',
+        ]}
+      >
+        <a href={postUrl} class='transition-colors'>
+          <span>{title}</span>
+        </a>
+      </h3>
     )
   }
-  {!isShortRead && showDivider && (
-    <hr class='mt-6 border-foreground-muted/10' />
-  )}
+
+  {description && <p class='text-foreground-muted'>{description}</p>}
+  <div
+    class='mt-3 flex flex-wrap items-center gap-y-1 text-sm text-foreground-muted'
+  >
+    {
+      tags && tags.length > 0 && (
+        <>
+          <ul class='-me-4 flex flex-wrap items-center'>
+            {tags.map(tag => (
+              <Tag tag={slugifyStr(tag)} tagName={tag} />
+            ))}
+          </ul>
+          <span aria-hidden='true' class='mx-2'>
+            ·
+          </span>
+        </>
+      )
+    }
+    <PostMeta {pubDatetime} {modDatetime} {timezone} text={post.body || ''} />
+  </div>
+  {showDivider && <hr class='mt-6 border-foreground-muted/10' />}
 </li>

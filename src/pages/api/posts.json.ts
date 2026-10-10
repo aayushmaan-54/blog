@@ -19,12 +19,7 @@ export const GET: APIRoute = async () => {
     .slice(0, LIMIT)
     .map(post => ({
       title: post.data.title,
-      slug: getPostPath(
-        post.id,
-        post.filePath,
-        post.collection,
-        post.data.slug,
-      ).replace(/^\//, ''),
+      slug: getPostPath(post).replace(/^\//, ''),
       publishedAt: new Date(post.data.pubDatetime).toISOString(),
     }));
 

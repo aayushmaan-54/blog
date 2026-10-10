@@ -1,0 +1,40 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import ContentLayout from '@/layouts/ContentLayout.astro';
+import { getUniqueSeries } from '@/utils/content/getSeries';
+import { getCollection } from 'astro:content';
+
+const blogs = await getCollection('blogs', ({ data }) => !data.draft);
+const allSeries = getUniqueSeries(blogs);
+---
+
+<BaseLayout
+  title='series'
+  description='Multi-part article series, meant to be read in order.'
+>
+  <ContentLayout pageTitle='series'>
+    {
+      allSeries.length === 0 ? (
+        <p class='mt-6 text-foreground-muted'>No series yet.</p>
+      ) : (
+        <ul class='mt-6 space-y-3'>
+          {allSeries.map(({ series, seriesName, count }) => (
+            <li>
+              <a
+                href={`/series/${series}/`}
+                class='group text-lg text-accent transition-colors focus-visible:text-foreground-primary'
+              >
+                <span class='underline-offset-4 group-hover:underline'>
+                  {seriesName}
+                </span>
+                <span class='ml-2 font-mono text-xs text-foreground-muted'>
+                  {count} {count === 1 ? 'part' : 'parts'}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </ContentLayout>
+</BaseLayout>

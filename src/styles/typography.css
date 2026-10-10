@@ -87,7 +87,7 @@
     }
 
     table {
-      @apply block w-max max-w-full overflow-x-auto;
+      @apply block w-max max-w-full overflow-x-auto text-sm sm:text-base;
 
       th,
       td {
@@ -270,6 +270,12 @@
       @apply rounded-sm border border-border px-0.5 py-px;
     }
   }
+}
+
+/* The side TOC replaces the inline one where there's room for it. */
+.app-prose #table-of-contents,
+.app-prose #table-of-contents + details {
+  @apply xl:hidden;
 }
 
 .app-prose dd {

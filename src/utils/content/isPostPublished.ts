@@ -3,7 +3,7 @@ import { SITE } from '@/config/site.config';
 
 const isPostPublished = ({
   data,
-}: CollectionEntry<'blogs' | 'short_reads'>) => {
+}: CollectionEntry<'blogs'>) => {
   const isPublishTimePassed =
     Date.now() >
     new Date(data.pubDatetime).getTime() - SITE.scheduledPostMargin;

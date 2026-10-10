@@ -5,7 +5,7 @@ import loadGoogleFontGlyphs from '@/utils/text/loadGoogleFontGlyphs';
 import { PUBLIC_SITE_URL } from 'astro:env/client';
 
 export default async function generateSvg(
-  post: CollectionEntry<'blogs' | 'short_reads'>,
+  post: CollectionEntry<'blogs'>,
 ) {
   const rawTitle = post.data.title;
   const title =
@@ -20,10 +20,7 @@ export default async function generateSvg(
           ? 54
           : 64;
 
-  const rawDescription =
-    post.collection === 'blogs' && 'description' in post.data
-      ? post.data.description
-      : `${post.data.title} - ${post.data.pubDatetime.toLocaleDateString()}`;
+  const rawDescription = post.data.description;
 
   const description =
     rawDescription.length > 140

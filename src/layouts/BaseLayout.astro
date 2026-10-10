@@ -23,7 +23,7 @@ export interface Props {
   modDatetime?: Date | null;
   scrollSmooth?: boolean;
   showNav?: boolean;
-  section?: 'blogs' | 'short-reads' | string;
+  section?: 'blogs' | string;
   tags?: string[];
   isDraft?: boolean;
 }
@@ -92,18 +92,8 @@ const structuredData = isArticle
 
 const shouldNoIndex = isDraft && import.meta.env.DEV;
 
-const sectionLabel =
-  section === 'short-reads'
-    ? 'Short Reads'
-    : section === 'blogs'
-      ? 'Blogs'
-      : undefined;
-const sectionPath =
-  section === 'short-reads'
-    ? '/short-reads'
-    : section === 'blogs'
-      ? '/blogs'
-      : undefined;
+const sectionLabel = section === 'blogs' ? 'Blogs' : undefined;
+const sectionPath = section === 'blogs' ? '/blogs' : undefined;
 
 const breadcrumbData =
   isArticle && sectionLabel && sectionPath

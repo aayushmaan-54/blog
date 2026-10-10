@@ -1,0 +1,37 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import ContentLayout from '@/layouts/ContentLayout.astro';
+import PostLink from '@/components/PostLink.astro';
+import { getPostsBySeries, getUniqueSeries } from '@/utils/content/getSeries';
+
+export async function getStaticPaths() {
+  const blogs = await getCollection('blogs', ({ data }) => !data.draft);
+
+  return getUniqueSeries(blogs).map(({ series, seriesName }) => ({
+    params: { series },
+    props: { seriesName, parts: getPostsBySeries(blogs, series) },
+  }));
+}
+
+const { seriesName, parts } = Astro.props;
+---
+
+<BaseLayout
+  title={`series / ${seriesName}`}
+  description={`${seriesName}: a ${parts.length}-part series by Aayushmaan Soni.`}
+>
+  <ContentLayout pageTitle={['series:', seriesName]}>
+    <ol>
+      {
+        parts.map((post, index) => (
+          <PostLink
+            post={post}
+            variant='h3'
+            showDivider={index !== parts.length - 1}
+          />
+        ))
+      }
+    </ol>
+  </ContentLayout>
+</BaseLayout>

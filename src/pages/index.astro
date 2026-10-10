@@ -6,18 +6,15 @@ import getSortedPosts from '@/utils/content/getSortedPosts';
 import { getCollection } from 'astro:content';
 
 const blogs = await getCollection('blogs');
-const shorts = await getCollection('short_reads');
 
 const sortedBlogs = getSortedPosts(blogs);
-const sortedShorts = getSortedPosts(shorts);
 
 const featuredPosts = sortedBlogs.filter(({ data }) => data.featured);
 const recentBlogs = sortedBlogs
   .filter(({ data }) => !data.featured)
   .slice(0, SITE.postPerIndex);
-const recentShorts = sortedShorts.slice(0, SITE.postPerIndex);
 
-const hasRecent = recentBlogs.length > 0 || recentShorts.length > 0;
+const hasRecent = recentBlogs.length > 0;
 ---
 
 <BaseLayout title={SITE.title}>
@@ -51,7 +48,7 @@ const hasRecent = recentBlogs.length > 0 || recentShorts.length > 0;
           </h2>
 
           {recentBlogs.length > 0 && (
-            <div class='mb-12'>
+            <div>
               <div class='mb-4 flex items-baseline justify-between gap-4'>
                 <h3 class='flex items-baseline gap-2 font-mono text-base tracking-tight lowercase'>
                   <span class='text-accent'>01</span>
@@ -70,32 +67,6 @@ const hasRecent = recentBlogs.length > 0 || recentShorts.length > 0;
                     variant='h3'
                     post={post}
                     showDivider={index !== recentBlogs.length - 1}
-                  />
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {recentShorts.length > 0 && (
-            <div>
-              <div class='mb-4 flex items-baseline justify-between gap-4'>
-                <h3 class='flex items-baseline gap-2 font-mono text-base tracking-tight lowercase'>
-                  <span class='text-accent'>02</span>
-                  <span class='text-foreground-primary'>short-reads</span>
-                </h3>
-                <a
-                  href='/short-reads'
-                  class='font-mono text-xs text-foreground-muted lowercase underline-offset-4 transition-colors hover:text-foreground-primary hover:underline'
-                >
-                  view all →
-                </a>
-              </div>
-              <ul>
-                {recentShorts.map((post, index) => (
-                  <PostLink
-                    variant='h3'
-                    post={post}
-                    showDivider={index !== recentShorts.length - 1}
                   />
                 ))}
               </ul>

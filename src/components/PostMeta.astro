@@ -12,9 +12,9 @@ dayjs.extend(timezone);
 export interface Props {
   class?: string;
   size?: 'sm' | 'lg';
-  timezone: CollectionEntry<'blogs' | 'short_reads'>['data']['timezone'];
-  pubDatetime: CollectionEntry<'blogs' | 'short_reads'>['data']['pubDatetime'];
-  modDatetime: CollectionEntry<'blogs' | 'short_reads'>['data']['modDatetime'];
+  timezone: CollectionEntry<'blogs'>['data']['timezone'];
+  pubDatetime: CollectionEntry<'blogs'>['data']['pubDatetime'];
+  modDatetime: CollectionEntry<'blogs'>['data']['modDatetime'];
   text: string;
 }
 

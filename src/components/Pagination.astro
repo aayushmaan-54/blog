@@ -4,7 +4,7 @@ import type { CollectionEntry } from 'astro:content';
 import Link from './Link.astro';
 
 export interface Props {
-  page: Page<CollectionEntry<'blogs' | 'short_reads'>>;
+  page: Page<CollectionEntry<'blogs'>>;
 }
 
 const { page } = Astro.props;

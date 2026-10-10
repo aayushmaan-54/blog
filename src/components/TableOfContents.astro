@@ -1,0 +1,95 @@
+---
+import type { MarkdownHeading } from 'astro';
+
+export interface Props {
+  headings: MarkdownHeading[];
+}
+
+const headings = Astro.props.headings.filter(
+  ({ depth, slug }) => depth <= 3 && slug !== 'table-of-contents',
+);
+---
+
+{
+  headings.length > 1 && (
+    <aside
+      class='absolute top-0 left-full ml-10 hidden h-full w-52 xl:block'
+      data-pagefind-ignore
+    >
+      <nav
+        id='side-toc'
+        aria-label='On this page'
+        class='sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto text-sm'
+      >
+        <p class='mb-3 font-mono text-xs text-foreground-muted lowercase'>
+          // on this page
+        </p>
+        <ul class='space-y-2 border-l border-border'>
+          {headings.map(({ depth, slug, text }) => (
+            <li>
+              <a
+                href={`#${slug}`}
+                data-toc-link={slug}
+                class:list={[
+                  '-ml-px block border-l border-transparent leading-snug text-foreground-muted transition-colors hover:text-foreground-primary',
+                  depth === 3 ? 'pl-6' : 'pl-3',
+                ]}
+              >
+                {text}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </aside>
+  )
+}
+
+<script>
+  const ACTIVE = ['border-accent', 'text-accent'];
+
+  const initSideToc = () => {
+    const links = [
+      ...document.querySelectorAll<HTMLAnchorElement>('[data-toc-link]'),
+    ];
+    if (!links.length) return;
+
+    const headings = links
+      .map(link => document.getElementById(link.dataset.tocLink ?? ''))
+      .filter((heading): heading is HTMLElement => heading !== null);
+
+    let ticking = false;
+
+    const update = () => {
+      ticking = false;
+      // The active section is the last heading scrolled past the top third.
+      const offset = window.innerHeight / 3;
+      let active = headings[0];
+      for (const heading of headings) {
+        if (heading.getBoundingClientRect().top <= offset) active = heading;
+      }
+
+      for (const link of links) {
+        const isActive = link.dataset.tocLink === active?.id;
+        link.classList.toggle(ACTIVE[0], isActive);
+        link.classList.toggle(ACTIVE[1], isActive);
+        if (isActive) link.setAttribute('aria-current', 'location');
+        else link.removeAttribute('aria-current');
+      }
+    };
+
+    document.addEventListener(
+      'scroll',
+      () => {
+        if (!ticking) {
+          ticking = true;
+          requestAnimationFrame(update);
+        }
+      },
+      { passive: true },
+    );
+    update();
+  };
+
+  initSideToc();
+</script>

@@ -1,0 +1,65 @@
+---
+import { getCollection, type CollectionEntry } from 'astro:content';
+import getSortedPosts from '@/utils/content/getSortedPosts';
+import getPostPath from '@/utils/content/getPostPath';
+import formatShortDate from '@/utils/date/formatShortDate';
+import { slugifyAll, slugifyStr } from '@/utils/text/slugify';
+
+export interface Props {
+  post: CollectionEntry<'blogs'>;
+  limit?: number;
+}
+
+const { post, limit = 3 } = Astro.props;
+
+const tags = new Set(slugifyAll(post.data.tags));
+const series = post.data.series && slugifyStr(post.data.series);
+
+const related = getSortedPosts(await getCollection('blogs'))
+  .filter(
+    other =>
+      other.id !== post.id &&
+      !(
+        series &&
+        other.data.series &&
+        slugifyStr(other.data.series) === series
+      ),
+  )
+  .map(other => ({
+    other,
+    shared: slugifyAll(other.data.tags).filter(tag => tags.has(tag)).length,
+  }))
+  .filter(({ shared }) => shared > 0)
+  .sort((a, b) => b.shared - a.shared)
+  .slice(0, limit)
+  .map(({ other }) => other);
+---
+
+{
+  related.length > 0 && (
+    <section aria-labelledby='related-posts' class='mt-16' data-pagefind-ignore>
+      <h2
+        id='related-posts'
+        class='mb-4 flex items-center gap-3 font-mono text-xs font-extralight tracking-tight text-foreground-muted lowercase'
+      >
+        <span>// related</span>
+        <span class='h-px flex-1 bg-foreground-muted/15' aria-hidden='true' />
+      </h2>
+      <ul class='space-y-4'>
+        {related.map(other => (
+          <li class='flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-4'>
+            <time class='w-24 shrink-0 text-sm text-foreground-muted tabular-nums'>
+              {formatShortDate(other.data.pubDatetime)}
+            </time>
+            <a
+              href={getPostPath(other)}
+              class='underline decoration-1 underline-offset-4 transition-colors hover:text-accent'
+            >
+              {other.data.title}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
