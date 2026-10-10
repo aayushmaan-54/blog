@@ -1,12 +1,13 @@
 ---
 import { getCollection } from 'astro:content';
+import isPostPublished from '@/utils/content/isPostPublished';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import ContentLayout from '@/layouts/ContentLayout.astro';
 import PostLink from '@/components/PostLink.astro';
 import { getPostsBySeries, getUniqueSeries } from '@/utils/content/getSeries';
 
 export async function getStaticPaths() {
-  const blogs = await getCollection('blogs', ({ data }) => !data.draft);
+  const blogs = await getCollection('blogs', isPostPublished);
 
   return getUniqueSeries(blogs).map(({ series, seriesName }) => ({
     params: { series },

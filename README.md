@@ -66,8 +66,7 @@ blog/
 │   │   └── mdx/                  # MDX components: Callout, Tooltip, MDXImage (+ index.ts mapping)
 │   ├── config/                   # site.config.ts, content.config.ts, socials.config.ts
 │   ├── content/
-│   │   └── writing/
-│   │       └── blogs/            # Posts (.md/.mdx)
+│   │   └── blogs/                # Posts (.md/.mdx)
 │   ├── content.config.ts         # Re-exports collections from config/ (Astro's required discovery path)
 │   ├── layouts/                  # BaseLayout (SEO/head), ContentLayout
 │   ├── pages/                    # File-based routes + rss.xml / robots.txt / llms.txt / og.png endpoints
@@ -138,7 +137,7 @@ export const SITE = {
 
 ## 📝 Writing Posts
 
-Create a new `.md` / `.mdx` file in `src/content/writing/blogs/` and add frontmatter. New MDX components go in `src/components/mdx/` and are registered in `src/components/mdx/index.ts`.
+Create a new `.md` / `.mdx` file in `src/content/blogs/` and add frontmatter. New MDX components go in `src/components/mdx/` and are registered in `src/components/mdx/index.ts`.
 
 ### Frontmatter
 

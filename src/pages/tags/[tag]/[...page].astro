@@ -2,6 +2,7 @@
 import { SITE } from '@/config/site.config';
 import type { GetStaticPathsOptions } from 'astro';
 import { getCollection } from 'astro:content';
+import isPostPublished from '@/utils/content/isPostPublished';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import ContentLayout from '@/layouts/ContentLayout.astro';
 import PostLink from '@/components/PostLink.astro';
@@ -10,7 +11,7 @@ import getUniqueTags from '@/utils/content/getUniqueTags';
 import getPostsByTag from '@/utils/content/getPostsByTag';
 
 export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
-  const blogs = await getCollection('blogs', ({ data }) => !data.draft);
+  const blogs = await getCollection('blogs', isPostPublished);
   const tags = getUniqueTags(blogs);
 
   return tags.flatMap(({ tag, tagName }) => {

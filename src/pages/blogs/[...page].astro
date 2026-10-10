@@ -1,6 +1,7 @@
 ---
 import type { GetStaticPaths } from 'astro';
 import { getCollection } from 'astro:content';
+import isPostPublished from '@/utils/content/isPostPublished';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Pagination from '@/components/Pagination.astro';
 import { SITE } from '@/config/site.config';
@@ -9,7 +10,7 @@ import PostLink from '@/components/PostLink.astro';
 import getSortedPosts from '@/utils/content/getSortedPosts';
 
 export const getStaticPaths = (async ({ paginate }) => {
-  const blogs = await getCollection('blogs', ({ data }) => !data.draft);
+  const blogs = await getCollection('blogs', isPostPublished);
   return paginate(getSortedPosts(blogs), { pageSize: SITE.postPerPage.blogs });
 }) satisfies GetStaticPaths;
 

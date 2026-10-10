@@ -1,10 +1,11 @@
 import type { APIRoute } from 'astro';
 import { getCollection, type CollectionEntry } from 'astro:content';
+import isPostPublished from '@/utils/content/isPostPublished';
 import generateOgImageForPost from '@/utils/seo/generateOgImageForPost';
 
 export async function getStaticPaths() {
   const blogs = await getCollection('blogs').then(blog =>
-    blog.filter(({ data }) => !data.draft && !data.ogImage),
+    blog.filter(post => isPostPublished(post) && !post.data.ogImage),
   );
 
   return blogs.map(blog => ({

@@ -3,8 +3,9 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
 import ContentLayout from '@/layouts/ContentLayout.astro';
 import { getUniqueSeries } from '@/utils/content/getSeries';
 import { getCollection } from 'astro:content';
+import isPostPublished from '@/utils/content/isPostPublished';
 
-const blogs = await getCollection('blogs', ({ data }) => !data.draft);
+const blogs = await getCollection('blogs', isPostPublished);
 const allSeries = getUniqueSeries(blogs);
 ---
 

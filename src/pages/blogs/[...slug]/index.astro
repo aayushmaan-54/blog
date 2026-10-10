@@ -13,6 +13,7 @@ import RelatedPosts from '@/components/RelatedPosts.astro';
 import { slugifyStr } from '@/utils/text/slugify';
 import getPostPath from '@/utils/content/getPostPath';
 import assertUniqueSlugs from '@/utils/content/assertUniqueSlugs';
+import isPostPublished from '@/utils/content/isPostPublished';
 import { components } from '@/components/mdx';
 import { getPostsBySeries } from '@/utils/content/getSeries';
 
@@ -25,7 +26,7 @@ export async function getStaticPaths() {
   assertUniqueSlugs(blogs);
 
   return blogs
-    .filter(({ data }) => !data.draft)
+    .filter(isPostPublished)
     .map(blog => ({
       params: { slug: blog.data.slug },
       props: { post: blog },

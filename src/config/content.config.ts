@@ -3,7 +3,7 @@ import { z } from 'astro/zod';
 import { glob } from 'astro/loaders';
 import { SITE } from '@/config/site.config';
 
-export const BLOG_PATH = 'src/content/writing/blogs';
+export const BLOG_PATH = 'src/content/blogs';
 const CONTENT_PATTERN = ['**/*.{md,mdx}', '!**/_*', '!**/_*/**'];
 
 const optional = <T extends z.ZodType>(schema: T) =>

@@ -2,11 +2,12 @@
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import ContentLayout from '@/layouts/ContentLayout.astro';
 import { getCollection } from 'astro:content';
+import isPostPublished from '@/utils/content/isPostPublished';
 import groupPostsBy from '@/utils/content/groupPostsBy';
 import formatMonthDay from '@/utils/date/formatMonthDay';
 import getPostPath from '@/utils/content/getPostPath';
 
-const posts = await getCollection('blogs', ({ data }) => !data.draft);
+const posts = await getCollection('blogs', isPostPublished);
 ---
 
 <BaseLayout
