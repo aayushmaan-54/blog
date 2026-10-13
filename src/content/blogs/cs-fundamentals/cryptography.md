@@ -1,5 +1,5 @@
 ---
-title: "CS Fundamentals: Cryptography (Part 7)"
+title: "CS Fundamentals: Cryptography"
 description:  Cryptography
 pubDatetime: 2026-10-10T22:11:07.000+05:30 
 author: Aayushmaan Soni

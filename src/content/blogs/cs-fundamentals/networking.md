@@ -1,5 +1,5 @@
 ---
-title: "CS Fundamentals: Networking (Part 1)"
+title: "CS Fundamentals: Networking"
 description: "Networking from an engineer's lens: IP, MAC, TCP/UDP, HTTP, TLS, proxies, VPN, Docker, DNS, and what really happens when you open a website, plus projects to build next."
 pubDatetime: 2026-10-10T22:11:07.000+05:30 
 author: Aayushmaan Soni

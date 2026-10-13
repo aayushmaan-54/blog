@@ -1,5 +1,5 @@
 ---
-title: "CS Fundamentals: OS - Operating System (Part 4)"
+title: "CS Fundamentals: OS - Operating System"
 description:  Operating System
 pubDatetime: 2026-10-10T22:11:07.000+05:30 
 author: Aayushmaan Soni

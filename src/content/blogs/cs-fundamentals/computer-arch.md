@@ -1,5 +1,5 @@
 ---
-title: "CS Fundamentals: Computer Architecture (Part 3)"
+title: "CS Fundamentals: Computer Architecture"
 description:  Computer Architecture
 pubDatetime: 2026-10-10T22:11:07.000+05:30 
 author: Aayushmaan Soni

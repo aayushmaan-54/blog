@@ -1,5 +1,5 @@
 ---
-title: "CS Fundamentals: Compiler Design (Part 6)"
+title: "CS Fundamentals: Compiler Design"
 description:  Compiler Design
 pubDatetime: 2026-10-10T22:11:07.000+05:30 
 author: Aayushmaan Soni
