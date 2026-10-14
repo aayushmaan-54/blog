@@ -798,11 +798,16 @@ Render           → more requests (multiplexed) → CORS / cookies / WebSocket 
 ```
 
 ## 18. What to Do Next
+Build these in order; each one reuses what you learned in the previous one.
+
 1. **Observe real traffic**: capture in Wireshark while you reconnect Wi-Fi (DHCP DORA), open a site (DNS query, TCP 3-way handshake, TLS ClientHello with SNI), and close it (FIN/ACK); run `dig +trace example.com`, `traceroute example.com`, `curl -v https://example.com`; inspect a site's certificate chain in the browser
 2. **TCP & UDP client/server**: echo server with raw sockets in both, then turn the TCP one into a multi-client chat server
-3. **HTTP/1.1 server from scratch**: on top of raw TCP sockets; parse the request line, headers, and body yourself, serve static files, return proper status codes, support keep-alive
+3. **HTTP/1.1 server from scratch, then HTTPS**: on top of raw TCP sockets; parse the request line, headers, and body yourself, serve static files, return proper status codes, support keep-alive; then add TLS using your language's TLS library and a local certificate (`mkcert`), and open it in Wireshark to see the handshake (stretch: write a toy TLS 1.3 handshake yourself)
 4. **DNS resolver from scratch**: build a DNS query packet by hand, send it over UDP to a root server, and follow referrals (root → TLD → authoritative) until you get the IP
 5. **Reverse proxy / load balancer**: forward requests to multiple backends with round robin, health checks, and `X-Forwarded-For`
+6. **Deploy a real app**: rent a small VPS, point your domain's `A` record at it, open only ports 80/443, run your app on `127.0.0.1` behind Nginx or Caddy as a reverse proxy, get a Let's Encrypt certificate (certbot for Nginx, automatic in Caddy), redirect HTTP → HTTPS, add HSTS; then check it with `dig`, `curl -v`, and the browser's certificate viewer
+7. **BitTorrent client**: parse a `.torrent` file, get peers from the tracker, do the peer handshake, download pieces in parallel, and verify each piece's hash
+8. **Toy VPN**: create a TUN interface on Linux, read raw IP packets from it, encrypt them, and send them over UDP to a small server that decrypts them and forwards them (NAT) to the internet
 
 **Resources**
 - [Beej's Guide to Network Programming](https://beej.us/guide/bgnet/): sockets from scratch; perfect companion for projects 2 & 3
