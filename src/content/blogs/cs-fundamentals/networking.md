@@ -18,7 +18,7 @@ This is **Part 1** of my **CS Fundamentals** series, where I'm putting down the 
 
 Each part covers the basics, but always from a **software engineer's lens**: what actually shows up when you build, deploy, and debug real systems, not just what's asked in exams.
 
-**In this part** we start from the very basics (IP, MAC, ports, TCP/UDP), move up through HTTP, TLS, browser security, proxies, VPNs, P2P (BitTorrent) and DNS, and then tie it all together by following one request from your home router to a rendered web page. At the end, there's a list of projects to build so the concepts actually stick.
+**In this part** we start from the very basics (IP, MAC, ports, TCP/UDP), move up through DNS, HTTP, TLS, browser security, proxies, VPNs and P2P (BitTorrent), and then tie it all together by following one request from your home router to a rendered web page. At the end, there's a list of projects to build so the concepts actually stick.
 
 Read it top to bottom the first time; after that, use it as a quick reference.
 
@@ -41,6 +41,13 @@ Read it top to bottom the first time; after that, use it as a quick reference.
 - **Bits**: smallest unit of data; 0 or 1; represented as `b`
 - **Bytes**: 8 bits; represented as `B`
   - ISP speeds are in **Mbps** (bits), downloads show **MB/s** (bytes) → 100 Mbps ≈ 12.5 MB/s
+- **Bandwidth**: maximum data a link can carry per second (e.g. 100 Mbps); the width of the pipe
+- **Throughput**: data actually delivered per second; always ≤ bandwidth (packet loss, congestion, protocol overhead)
+- **Latency**: time for data to travel from one end to the other; limited by distance (light in fiber ≈ 200,000 km/s), number of hops, and queuing in routers
+- **RTT (Round-Trip Time)**: time for a packet to reach the other side and the reply to come back; what `ping` shows (e.g. India → US ≈ 200-250 ms)
+  - Every handshake (TCP, TLS) costs RTTs before any data flows → that's why fewer round trips (HTTP/3, TLS 1.3) and servers closer to users (CDNs) matter
+  - More bandwidth doesn't fix high latency; a page with many small requests is limited by RTT, not bandwidth
+- **MTU (Maximum Transmission Unit)**: biggest packet a link can carry in one go; 1500 bytes on Ethernet; bigger data is split into multiple packets; tunnels (VPN) add headers, so less space is left for data
 - **Default Gateway**: device your computer sends traffic to when the destination is outside its own local network, usually router
 - **VLAN (Virtual LAN)**: logically divide one physical LAN/switch infrastructure into separate LANs
 
@@ -171,7 +178,30 @@ Link:         [ Eth hdr (MACs) | IP hdr | TCP hdr | HTTP data | FCS ]  -> frame 
   - L4 load balancer -> reads IP + port; L7 load balancer / reverse proxy -> reads HTTP (URL, headers)
   - your app -> sees only the data; OS kernel handles L2–L4
 
-## 8. HTTP Fundamentals
+## 8. DNS
+> I've written a detailed post on this: [How DNS Really Works: From Browser Cache to ISP Tracking](/blogs/how-dns-really-works). It covers resolution step by step, propagation, negative caching, ISP tracking, and DNS leaks. Below is the quick reference.
+
+- **DNS (Domain Name System)**: the internet's phonebook; translates human-readable names (`google.com`) into IP addresses (`142.250.1.1`); runs mostly over **UDP port 53** (TCP for large responses/zone transfers)
+- **Resolution flow**: browser cache → OS cache (+ `/etc/hosts`) → **recursive resolver** (ISP, `8.8.8.8`, `1.1.1.1`) → **root server** → **TLD server** (`.com`) → **authoritative server** (has the actual record) → answer cached at every step on the way back
+- **Recursive resolver**: does the full lookup on your behalf and caches results
+- **Authoritative name server**: source of truth for a domain's records (where you edit DNS: Cloudflare, Route 53, your registrar)
+- **Common records**:
+  - **A**: name → IPv4
+  - **AAAA**: name → IPv6
+  - **CNAME**: name → another name (alias); can't be used on the root domain (`example.com`)
+  - **MX**: mail servers for the domain
+  - **TXT**: free text; used for domain verification, SPF/DKIM email auth
+  - **NS**: which name servers are authoritative for the domain
+- **TTL (Time To Live)**: how long (in seconds) resolvers can cache a record; low TTL = changes spread faster but more lookups; lower it **before** a migration
+- **DNS propagation**: not really "propagating"; old answers stay in caches until their TTL expires
+- **`/etc/hosts`**: local file mapping names to IPs; checked before DNS; handy for local testing (`127.0.0.1 myapp.local`)
+- **DoH / DoT (DNS over HTTPS / TLS)**: encrypt DNS queries so the local network/ISP can't read or tamper with them
+- **Engineer notes**:
+  - "It's always DNS": wrong record, stale cache, or wrong resolver is behind many "the server is down" incidents
+  - Inside Docker/K8s, names like `db` or `my-svc.default.svc.cluster.local` are resolved by the internal DNS server, not public DNS
+  - Debug: `dig example.com`, `dig +short example.com A`, `dig @1.1.1.1 example.com` (ask a specific resolver), `nslookup example.com`
+
+## 9. HTTP Fundamentals
 - **HTTP**: Hypertext Transfer Protocol; application layer (L7) protocol that defines how clients and servers communicate through requests and responses; runs over TCP (HTTP/1.1, HTTP/2) or QUIC/UDP (HTTP/3)
 - **Stateless**: each request is independent; server doesn't remember previous requests by itself; state is added on top using cookies, sessions, or tokens
 - **HTTP request**: message a client sends to a server asking it to perform an operation or provide a resource; method + path + headers + optional body
@@ -241,7 +271,7 @@ Content-Length: 28
   - **Location**: URL to redirect to (3xx) or of the newly created resource (201)
   - **Referer**: which page/URL led to the current request (yes, misspelled in the spec); controlled by `Referrer-Policy`
 
-## 9. HTTP Versions
+## 10. HTTP Versions
 - **HTTP/1.0**: one request per TCP connection
   - Flow: open TCP connection (3-way handshake) -> send request -> get response -> close connection (FIN/ACK) -> repeat for the next request
   - Every request pays the handshake cost (1 RTT, +TLS handshake for HTTPS) and starts with TCP slow start again
@@ -279,7 +309,7 @@ Content-Length: 28
   - HTTP/3 → fixed at both levels (per-stream ordering in QUIC)
 - **Header compression**: HTTP/2 uses HPACK, HTTP/3 uses QPACK; both sides keep a table of headers already seen, so a repeated header is sent as a small index into that table instead of the full text
 
-## 10. HTTPS & TLS
+## 11. HTTPS & TLS
 - **HTTPS**: HTTP sent inside a **TLS** (Transport Layer Security) connection; default port 443
 - TLS gives 3 things: **confidentiality** (nobody can read it), **integrity** (nobody can change it unnoticed), **authentication** (you're really talking to `bank.com`)
 - **SSL**: old, broken predecessor of TLS; people still say "SSL certificate", but it's TLS today
@@ -370,7 +400,7 @@ Client                                         Server
 - **0-RTT**: on resumption, client sends data in its very first message; faster, but that data can be **replayed** by an attacker → only for safe requests (GET)
 - **HSTS (HTTP Strict Transport Security)**: response header telling the browser "only ever use HTTPS for this site"; no clicking through cert errors; `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`
 
-## 11. Browser Networking & Security
+## 12. Browser Networking & Security
 - **Origin**: Scheme (protocol) + Host (domain) + Port; all three must match to be same-origin; `https://example.com` vs `https://api.example.com` → different origins
 - **Site**: Scheme + registrable domain (`example.com`); `app.example.com` and `api.example.com` are same-site but cross-origin; SameSite cookies use **site**, CORS uses **origin**
 - **Same-Origin Policy**: browser security rule that restricts how a page from one origin can access resources from another origin
@@ -401,7 +431,7 @@ Client                                         Server
   - Preflight must not require auth, or it fails
 - **CORS with cookies**: client sends `credentials: "include"`; server must reply `Access-Control-Allow-Credentials: true` with the **exact** origin (`*` not allowed)
 
-## 12. Common Web Attacks
+## 13. Common Web Attacks
 - **CSRF**: Cross-Site Request Forgery; malicious website tricks your browser into sending an unwanted request to another website where you're logged in; browser attaches that site's cookies automatically, so the request looks legit
   - Example: you're logged in to `bank.com`; you open `evil.com`, which has a hidden auto-submitting form
 
@@ -460,7 +490,7 @@ Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.examp
   - **DDoS (Distributed Denial of Service)**: flood a service with traffic from many machines until it can't serve real users; defense: CDN/WAF (Cloudflare etc.), rate limiting, autoscaling
   - **Open redirect**: `site.com/login?next=https://evil.com` redirects anywhere; used in phishing since the link starts with a trusted domain; defense: allow only relative/allowlisted redirect URLs
 
-## 13. Proxy & Network Infrastructure
+## 14. Proxy & Network Infrastructure
 - **Proxy**: intermediary between a client and another server; instead of talking directly to the destination, the client talks through the proxy, which forwards the request and relays the response
 - **Forward Proxy**: sits in front of **clients** and talks to the internet on their behalf; destination sees the proxy's IP, not the client's
   - Used for: company/school web filtering, logging, caching, hiding client IP, getting around geo-restrictions (VPN-like)
@@ -507,7 +537,7 @@ Reverse:  Client → Internet → Reverse Proxy → [Server 1, Server 2, Server 
   - Caches static files (images, JS, CSS, videos); can also do TLS, DDoS protection, WAF; e.g. Cloudflare, CloudFront, Akamai
   - Controlled via `Cache-Control` headers; after deploy, **cache invalidation** or versioned file names (`app.3f9a2.js`)
 
-## 14. VPN
+## 15. VPN
 ### What it is
 A VPN (Virtual Private Network) creates an encrypted **tunnel** between your device and a VPN server. Your traffic goes through that server instead of directly to the internet.
 
@@ -559,7 +589,7 @@ All of this happens in **software**: the VPN app on your device and the VPN serv
 
 ECDHE keys are temporary → **forward secrecy**: if the server's key leaks later, past sessions stay safe.
 
-Same idea as the TLS handshake in section 10. WireGuard is simpler: a 1-RTT handshake with pre-shared public keys, no certificates, and no username/password step.
+Same idea as the TLS handshake in section 11. WireGuard is simpler: a 1-RTT handshake with pre-shared public keys, no certificates, and no username/password step.
 
 ### VPN protocols
 - **WireGuard:** modern, small codebase, fast, UDP only; each peer has a public/private key pair (no certificates); basis of Tailscale
@@ -571,7 +601,7 @@ Same idea as the TLS handshake in section 10. WireGuard is simpler: a 1-RTT hand
 - Doesn't protect against malware, phishing, or tracking via cookies/logins
 - **DNS leak:** if DNS queries skip the tunnel, your ISP still sees every domain you visit
 
-## 15. Peer-to-Peer & BitTorrent
+## 16. Peer-to-Peer & BitTorrent
 ### Client-server vs P2P
 - **Client-server:** everyone downloads from one server → more users = more load → slower for everyone
 - **Peer-to-peer (P2P):** every participant is both client and server; peers download from each other → more users = more upload capacity → popular files get **faster**
@@ -645,29 +675,6 @@ So you download different pieces from dozens of people at the same time, and the
 - Every peer in the swarm can see your **IP** and which torrent you're in (they need it to send you data)
 - Anti-piracy companies join swarms to collect IPs → that's why people use a VPN with torrents (peers see the VPN's IP)
 - The technology is legal and widely used (Linux ISOs, Internet Archive, game updates); sharing copyrighted content without permission is illegal in most countries, including India
-
-## 16. DNS
-> I've written a detailed post on this: [How DNS Really Works: From Browser Cache to ISP Tracking](/blogs/how-dns-really-works). It covers resolution step by step, propagation, negative caching, ISP tracking, and DNS leaks. Below is the quick reference.
-
-- **DNS (Domain Name System)**: the internet's phonebook; translates human-readable names (`google.com`) into IP addresses (`142.250.1.1`); runs mostly over **UDP port 53** (TCP for large responses/zone transfers)
-- **Resolution flow**: browser cache → OS cache (+ `/etc/hosts`) → **recursive resolver** (ISP, `8.8.8.8`, `1.1.1.1`) → **root server** → **TLD server** (`.com`) → **authoritative server** (has the actual record) → answer cached at every step on the way back
-- **Recursive resolver**: does the full lookup on your behalf and caches results
-- **Authoritative name server**: source of truth for a domain's records (where you edit DNS: Cloudflare, Route 53, your registrar)
-- **Common records**:
-  - **A**: name → IPv4
-  - **AAAA**: name → IPv6
-  - **CNAME**: name → another name (alias); can't be used on the root domain (`example.com`)
-  - **MX**: mail servers for the domain
-  - **TXT**: free text; used for domain verification, SPF/DKIM email auth
-  - **NS**: which name servers are authoritative for the domain
-- **TTL (Time To Live)**: how long (in seconds) resolvers can cache a record; low TTL = changes spread faster but more lookups; lower it **before** a migration
-- **DNS propagation**: not really "propagating"; old answers stay in caches until their TTL expires
-- **`/etc/hosts`**: local file mapping names to IPs; checked before DNS; handy for local testing (`127.0.0.1 myapp.local`)
-- **DoH / DoT (DNS over HTTPS / TLS)**: encrypt DNS queries so the local network/ISP can't read or tamper with them
-- **Engineer notes**:
-  - "It's always DNS": wrong record, stale cache, or wrong resolver is behind many "the server is down" incidents
-  - Inside Docker/K8s, names like `db` or `my-svc.default.svc.cluster.local` are resolved by the internal DNS server, not public DNS
-  - Debug: `dig example.com`, `dig +short example.com A`, `dig @1.1.1.1 example.com` (ask a specific resolver), `nslookup example.com`
 
 ## 17. Putting It All Together: From Home Router to Web Page
 - Everything from the sections above, in one journey: your home network connects to the ISP → your laptop joins Wi-Fi → you open `https://example.com` → the page shows up
@@ -745,7 +752,7 @@ L1:       radio signal
    - Usually 10-20 hops; `traceroute example.com` shows them
    - Often the "server" is actually the nearest **CDN edge**, not the origin server across the world (anycast IPs route you to the closest one)
 7. **SYN-ACK & ACK**: server replies `203.0.113.10:443 → 198.51.100.7:40001`; home router finds `40001` in its NAT table → rewrites dst to `192.168.1.23:54321` → delivers to the laptop by MAC; laptop sends **ACK** → **TCP connection established** (1 RTT)
-8. **TLS 1.3 handshake** (section 10, 1 RTT):
+8. **TLS 1.3 handshake** (section 11, 1 RTT):
    - **ClientHello**: TLS versions, cipher suites, key share, **SNI** = `example.com`, **ALPN** = `h2, http/1.1`
    - **ServerHello**: chosen cipher + server key share → both compute the shared secret; everything after is encrypted
    - **Certificate**: server (using SNI to pick the right one) sends its **leaf certificate** for `example.com` + **intermediate CA** certificate
@@ -812,3 +819,4 @@ Build these in order; each one reuses what you learned in the previous one.
 **Resources**
 - [Beej's Guide to Network Programming](https://beej.us/guide/bgnet/): sockets from scratch; perfect companion for projects 2 & 3
 - [Julia Evans - How DNS Works (zine)](https://wizardzines.com/zines/dns/): short, visual, and fun intro to DNS
+- [The Illustrated TLS 1.3 Connection](https://tls13.xargs.org/): every byte of a real TLS 1.3 handshake explained; pairs with the TLS section (key exchange, HKDF, CertificateVerify, Finished)
