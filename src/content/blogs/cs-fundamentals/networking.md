@@ -1,6 +1,6 @@
 ---
 title: "CS Fundamentals: Networking"
-description: "Networking from an engineer's lens: IP, MAC, TCP/UDP, HTTP, TLS, proxies, VPN, Docker, DNS, and what really happens when you open a website, plus projects to build next."
+description: "Networking from an engineer's lens: IP, MAC, TCP/UDP, HTTP, TLS, proxies, VPN, BitTorrent, DNS, and what really happens when you open a website, plus projects to build next."
 pubDatetime: 2026-10-10T22:11:07.000+05:30 
 author: Aayushmaan Soni
 slug: /cs-fundamentals/networking
@@ -18,7 +18,7 @@ This is **Part 1** of my **CS Fundamentals** series, where I'm putting down the 
 
 Each part covers the basics, but always from a **software engineer's lens**: what actually shows up when you build, deploy, and debug real systems, not just what's asked in exams.
 
-**In this part** we start from the very basics (IP, MAC, ports, TCP/UDP), move up through HTTP, TLS, browser security, proxies, VPNs, real-time communication, P2P, Docker networking and DNS, and then tie it all together by following one request from your home router to a rendered web page. At the end, there's a list of projects to build so the concepts actually stick.
+**In this part** we start from the very basics (IP, MAC, ports, TCP/UDP), move up through HTTP, TLS, browser security, proxies, VPNs, P2P (BitTorrent) and DNS, and then tie it all together by following one request from your home router to a rendered web page. At the end, there's a list of projects to build so the concepts actually stick.
 
 Read it top to bottom the first time; after that, use it as a quick reference.
 
@@ -92,15 +92,6 @@ Read it top to bottom the first time; after that, use it as a quick reference.
 - **MAC address**: 48-bit hardware address of a network interface (`a4:5e:60:12:34:56`); set by manufacturer; used for delivery **within a local link**
 - **End-to-end (IP)**: source & destination IP stay the same for the whole journey (NAT aside); IP = final destination
 - **Hop-to-hop (MAC)**: source & destination MAC only cover the current link (this device → next device); at every router the old frame is dropped and a new one is written
-
-```
-Laptop  →  Home Router  →  ISP Router  →  ...  →  Google
-
-Hop 1: MAC Laptop → Home Router  | IP Laptop → Google
-Hop 2: MAC Home Router → ISP     | IP Laptop → Google
-Hop 3: MAC ISP → Next Router     | IP Laptop → Google
-```
-
 - **ARP (Address Resolution Protocol)**: broadcast in LAN asking "who has this IPv4? tell me your MAC"; the bridge between IP (where to go) and MAC (next hop)
   - For destinations outside the LAN, ARP is done for the **default gateway's** IP, not the final destination
 - **NDP (Neighbor Discovery Protocol)**: IPv6 replacement for ARP; uses ICMPv6 multicast (not broadcast) to find a neighbor's MAC from its IPv6 address; also discovers routers and helps devices auto-configure their IPv6 address (SLAAC)
@@ -263,13 +254,6 @@ Content-Length: 28
   - Still **one request at a time per connection**: next request waits for the previous response
   - **Pipelining** (sending multiple requests without waiting) existed, but responses must still come back **in order**, so one slow response blocks the ones behind it → **HTTP-level head-of-line blocking**; browsers never really enabled it
   - Workaround: browsers open ~6 parallel TCP connections per host; developers used domain sharding, bundling, image sprites
-
-```
-HTTP/1.1 (one connection, in order):
-  req A ──[ slow response A ]──> req B ──> res B ──> req C ──> res C
-                 ^ B and C wait for A
-```
-
 - **HTTP/2**: many requests in parallel over **one** TCP connection
   - Messages are split into **binary frames**; each frame belongs to a **stream** (one request/response pair = one stream)
   - Frames from different streams are **interleaved (multiplexed)** on the same connection → responses no longer wait for each other at the HTTP level
@@ -278,13 +262,6 @@ HTTP/1.1 (one connection, in order):
   - Server push → server sends resources before client asks; rarely used well and now removed from major browsers
   - Problem: TCP delivers bytes **strictly in order**; if one TCP packet is lost, all bytes after it wait for retransmission, even those belonging to other streams → **TCP-level head-of-line blocking**; on lossy networks (mobile) this can make HTTP/2 slower than multiple HTTP/1.1 connections
   - In practice used only over HTTPS (browsers require TLS for HTTP/2)
-
-```
-HTTP/2 (one TCP connection, interleaved):
-  [A1][B1][C1][A2][B2][C2] ...
-  one lost TCP packet -> A, B, C all wait for it
-```
-
 - **HTTP/3**: HTTP over **QUIC** instead of TCP
   - **QUIC**: transport protocol built on top of UDP; implements reliability, ordering, loss recovery and congestion control itself, but **per stream**
   - Lost packet only stalls **its own stream**; other streams keep flowing → no TCP-level head-of-line blocking
@@ -303,117 +280,95 @@ HTTP/2 (one TCP connection, interleaved):
 - **Header compression**: HTTP/2 uses HPACK, HTTP/3 uses QPACK; both sides keep a table of headers already seen, so a repeated header is sent as a small index into that table instead of the full text
 
 ## 10. HTTPS & TLS
-- **HTTPS**: HTTP + TLS (Transport Layer Security); HTTP messages are sent inside an encrypted TLS connection; default port 443
-- **TLS gives 3 guarantees**:
-  - **Confidentiality**: nobody in between (Wi-Fi owner, ISP) can read the data
-  - **Integrity**: nobody can modify the data in transit without being detected
-  - **Authentication**: you are really talking to `example.com`, not an attacker pretending to be it
-  - (not the same as the security "CIA triad", where A = Availability)
-- **What HTTPS hides vs not**:
-  - Hidden: URL path, query params, headers, cookies, body
-  - Visible: your IP & server IP, port, domain name (via DNS lookup & SNI), amount and timing of data
-- **SSL**: old name/predecessor of TLS; all SSL versions are broken & deprecated; people still say "SSL certificate" but it's TLS today; use TLS 1.2 or 1.3
+- **HTTPS**: HTTP sent inside a **TLS** (Transport Layer Security) connection; default port 443
+- TLS gives 3 things: **confidentiality** (nobody can read it), **integrity** (nobody can change it unnoticed), **authentication** (you're really talking to `bank.com`)
+- **SSL**: old, broken predecessor of TLS; people still say "SSL certificate", but it's TLS today
+- Below is how TLS 1.3 builds these, one problem at a time
 
-### Crypto building blocks
-- **Encryption**: converts readable data (plaintext) into unreadable data (ciphertext) using an algorithm and a key; reversible with the right key
-- **Symmetric encryption**: same secret key to encrypt and decrypt; fast; used for the actual data in TLS (AES-GCM, ChaCha20)
-  - Problem: how do two strangers agree on a secret key over a network everyone can see?
-- **Asymmetric encryption**: key pair; **public key** (share with everyone) + **private key** (keep secret); what one key locks, only the other can unlock; slow, so used only during the handshake
-- **Hashing**: data -> fixed-length digest (SHA-256); one-way, not reversible; same input always gives same output; tiny change in input -> completely different hash; used for integrity checks
-- **Digital signature**: hash the data and sign it with the **private key**; anyone with the **public key** can verify that (1) the owner of the private key signed it and (2) the data wasn't changed
-- **Key exchange (Diffie-Hellman / ECDHE)**: lets two sides create the **same shared secret** over a public channel without ever sending the secret itself
-  - Each side generates a temporary (ephemeral) key pair and sends only the public part ("key share")
-  - Each side combines its own private part + other side's public part -> both get the same secret; an eavesdropper who sees both public parts can't compute it
-  - **Forward secrecy**: keys are ephemeral (new per connection), so even if the server's private key leaks later, old recorded traffic can't be decrypted
-- **How TLS combines them**:
-  - Key exchange (ECDHE) -> agree on a shared secret
-  - Certificate + signature (asymmetric) -> prove the server's identity
-  - Symmetric encryption -> encrypt the actual data (fast)
-  - Old TLS (RSA key exchange) had the client encrypt a secret with the server's public key; removed in TLS 1.3 because it has no forward secrecy
+### Key exchange
+- **ECDHE** - client and server each create a temporary key pair and send only the public part (**key share**); each combines its own private part with the other's public part → both end up with the **same shared secret**, which is never sent over the network
+  - Keys are new for every connection → **forward secrecy**: even if the server's private key leaks later, old recorded traffic can't be decrypted
+- **HKDF** - both sides put the shared secret into HKDF on their own machines, with a label for each value, e.g. `HKDF(secret, "client key")`
+    - Same secret + same label → same output on both sides
+    - The **hash of the handshake messages so far** (transcript) is also mixed in → keys are tied to this exact handshake
+    - Two sets of keys are made, and **both client and server compute both sets**:
+        - **Handshake set** - client key, client IV, server key, server IV → used to encrypt the rest of the handshake (Certificate, CertificateVerify, Finished); made right after ServerHello
+        - **Application set** - client key, client IV, server key, server IV → used to encrypt real data (HTTP requests and responses); made after the server's Finished
+    - Plus **finished keys** (client + server) → used only for the Finished check
+    - In each set: client key + IV lock what the client sends, server key + IV lock what the server sends
+
+### Encrypting messages
+- Client locks its messages with **client key + client IV**; server unlocks them with the same values
+- Server locks its replies with **server key + server IV**; client unlocks them
+- Encryption is **symmetric** (same key to lock and unlock) because it's fast; ECDHE was only needed to agree on that key
+- **Nonce** = IV mixed (XOR) with the record number (0, 1, 2, ...)
+    - IV stays the same; only the record number changes (it restarts at 0 when switching to a new key set)
+    - Each side counts the records it sent and received; the number is never sent
+    - Same message sent twice → different encrypted data
+- **AES-GCM / ChaCha20-Poly1305** also add an **authentication tag** (check value), so any changed packet is rejected
+
+### The problem: no authentication
+- A MITM can do ECDHE with you and separately with the bank → reads and changes everything
+- We have confidentiality + integrity, but no **authentication**
+- Fix → certificates
 
 ### Certificates
-- **Digital certificate**: document that binds an identity (domain name) to a public key, signed by a CA; contains:
-  - Domain name(s) in the **Subject Alternative Name (SAN)** field (e.g. `api.example.com`, `*.example.com`)
-  - Server's public key
-  - Validity dates (not before / not after)
-  - Issuer (which CA signed it)
-  - CA's digital signature
-- **Certificate Authority (CA)**: entity trusted to verify domain ownership and issue/sign certificates; e.g. Let's Encrypt (free, automated), DigiCert
-- **Chain of trust**:
-  - **Root CA**: certificate pre-installed in your OS/browser **trust store**; self-signed; its private key is kept offline
-  - **Intermediate CA**: signed by root; actually signs website certificates (so the root key stays safe)
-  - **Leaf certificate**: your site's certificate; signed by intermediate
-  - Server sends leaf + intermediate(s); browser follows signatures up to a root it already trusts
+- A certificate says: "this public key belongs to this hostname", signed by a **CA (Certificate Authority)**; e.g. Let's Encrypt, DigiCert
+- **How the CA signs it** - hash all cert fields with SHA-256, then sign the hash with the **CA's private key**
+    - Change anything (hostname, key, ...) → signature check fails
+- **Chain of trust**
+    - **Root CA** - private key locked in an HSM (Hardware Security Module) at the CA, mostly kept offline; root cert (public key only) is in your OS/browser **root store** (~150 roots)
+    - Root signs the **intermediate CA** cert; intermediate does day-to-day signing
+    - Intermediate signs the **leaf** cert for the website
 
 ```
-Root CA (in trust store)
+Root CA (in root store)
   └── signs → Intermediate CA
-                └── signs → api.example.com (leaf)
+                └── signs → example.com (leaf)
 ```
 
-- **Certificate validation**: browser checks the received certificate before trusting it
-  - **Hostname**: domain you typed matches a name in SAN
-  - **Validity period**: not expired, not used before its start date
-  - **Trust chain**: chain leads to a trusted root
-  - **Signatures**: each certificate's signature is valid with the issuer's public key
-  - **Usage & constraints**: certificate is allowed to be used for a TLS server
-  - **Revocation**: certificate hasn't been cancelled (e.g. key leaked) via CRL/OCSP; short-lived certificates reduce the need for this
+- Server sends leaf + intermediates, not the root (your device already has it)
+- **Verification**
+    - Leaf signature checked with intermediate's public key; intermediate's with root's public key
+    - **Hostname** must be in the cert's **SAN (Subject Alternative Name)** list (stops an attacker using a valid cert for their own site)
+    - Also checked: expiry, revocation, **CA:TRUE** flag on intermediates (a normal leaf cert can't sign other certs), **Certificate Transparency** (cert was publicly logged)
+    - CA only issues a cert after you prove you control the domain (e.g. Let's Encrypt asks you to serve a file or add a DNS TXT record)
 
-### TLS 1.3 handshake (step by step)
-- **Goal**: before sending any HTTP data, agree on encryption keys + verify the server is who it claims to be
-- **Step 0 - TCP handshake**: SYN -> SYN-ACK -> ACK (TLS runs on top of TCP)
-- **Step 1 - ClientHello** (client -> server, plaintext):
-  - Supported TLS versions & cipher suites
-  - Random value (client random)
-  - **Key share**: client's ephemeral ECDHE public key (it guesses which algorithm the server will pick)
-  - **SNI (Server Name Indication)**: domain name it wants (`api.example.com`), so a server hosting many sites knows which certificate to send
-  - **ALPN**: application protocols it supports (`h2`, `http/1.1`); this is where the HTTP version gets decided
-- **Step 2 - ServerHello** (server -> client, plaintext):
-  - Chosen TLS version & cipher suite
-  - Server random
-  - **Key share**: server's ephemeral ECDHE public key
-  - Now **both sides compute the same shared secret** (ECDHE) and derive handshake keys from it; **everything after this is encrypted**
-- **Step 3 - Server proves identity** (encrypted):
-  - **EncryptedExtensions**: other settings (e.g. chosen ALPN protocol)
-  - **Certificate**: leaf + intermediate certificates
-  - **CertificateVerify**: signature over the whole handshake so far, made with the certificate's **private key**
-    - Proves the server actually owns the certificate (certificates are public; anyone can copy and send one, but only the real owner can sign with its private key)
-    - Also proves the key share came from the real server → stops man-in-the-middle
-  - **Finished**: HMAC (keyed hash, not the MAC address) over the whole handshake → proves nothing was tampered with
-- **Step 4 - Client verifies** (encrypted):
-  - Validates the certificate chain (see Certificate validation) & checks CertificateVerify signature with the certificate's public key
-  - Sends its own **Finished**
-  - Can send the first HTTP request right along with it
-- **Step 5 - Application data**: both sides derive final **traffic keys**; HTTP requests/responses are encrypted with fast symmetric encryption (AES-GCM / ChaCha20)
+### CertificateVerify - proving ownership
+- Certificates are public; anyone can send one → server must prove it has the **private key**
+- Server signs a hash of the handshake so far (ClientHello, ServerHello, ..., Certificate) with its **private key**
+- Client checks it with the **public key** from the certificate
+- Attacker has no private key → can't sign; changed ECDHE values → hash doesn't match
+
+### Finished - final check
+- **Transcript** = all handshake messages in order
+- `Finished = HMAC(finished key, hash of transcript)`
+- Each side checks the other's value → confirms nothing was changed and both have the same keys
+- One-time check only, **not used for encryption**
+
+### Order on the wire
+1. Client sends **ClientHello**: client key share, supported versions/ciphers, **SNI** (hostname it wants, so a server with many sites picks the right cert), **ALPN** (`h2`, `http/1.1` → decides the HTTP version)
+2. Server sends **ServerHello** (server key share) → both compute the secret and make the **handshake keys** with HKDF
+3. Server sends **EncryptedExtensions** (e.g. chosen ALPN), **Certificate, CertificateVerify, Finished** (encrypted with handshake keys)
+4. Client checks everything → sends its **Finished**; both make the **application keys**
+5. Encrypted application data both ways (key + IV + record number); the client can send its first HTTP request right after its Finished
 
 ```
 Client                                         Server
   |--- SYN / SYN-ACK / ACK (TCP) ---------------|   1 RTT
   |--- ClientHello (key share, SNI, ALPN) ----->|
   |<-- ServerHello (key share) -----------------|
-  |<-- {Certificate, CertificateVerify,         |   1 RTT
-  |     Finished} ------------------------------|
-  |--- {Finished} + {HTTP request} ------------>|
-  |<-- {HTTP response} -------------------------|
-                         {...} = encrypted
+  |<-- {EncryptedExtensions, Certificate,       |   1 RTT
+  |     CertificateVerify, Finished} -----------|
+  |--- {Finished} + [HTTP request] ------------>|
+  |<-- [HTTP response] -------------------------|
+       {...} = handshake keys   [...] = application keys
 ```
 
-- **Cost**: TLS 1.3 = 1 RTT (+1 RTT for TCP); TLS 1.2 = 2 RTT (+1 RTT for TCP); HTTP/3 (QUIC) merges transport + TLS into 1 RTT total
-- **Session resumption**: server gives client a ticket (PSK - pre-shared key); next connection skips the certificate part
-- **0-RTT**: on resumption, client can send data in its very first message; faster but that data can be **replayed** by an attacker → only use for safe/idempotent requests (GET)
-
-### HSTS & engineer notes
-- **HSTS (HTTP Strict Transport Security)**: response header telling the browser "only ever use HTTPS for this site"; browser auto-upgrades `http://` and doesn't let users click through cert errors
-  - `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`
-  - First visit is still unprotected (header not seen yet) → **HSTS preload list** built into browsers fixes this
-- **mTLS (mutual TLS)**: client also presents a certificate; server verifies client; used for service-to-service auth (service mesh, internal APIs)
-- **Certificate renewal**: certificates expire (Let's Encrypt: 90 days, and the industry is moving to even shorter lifetimes); automate renewal (certbot, cert-manager in K8s); expired certificates are a very common cause of outages
-- **Common errors**:
-  - Expired certificate
-  - Hostname mismatch (cert for `example.com`, request to `api.example.com`)
-  - Missing intermediate certificate (works in browser, fails in curl/apps)
-  - Self-signed certificate (fine locally; never disable verification in prod code)
-- **Debug**: `openssl s_client -connect example.com:443 -servername example.com` (see certificate chain); `curl -v https://example.com` (see TLS version, cipher, certificate)
+- Cost: TLS 1.3 = 1 RTT (+1 RTT for TCP); TLS 1.2 = 2 RTT (+1 RTT for TCP); HTTP/3 (QUIC) merges transport + TLS into 1 RTT total
+- **Session resumption**: server gives the client a ticket; next connection skips the certificate part
+- **0-RTT**: on resumption, client sends data in its very first message; faster, but that data can be **replayed** by an attacker → only for safe requests (GET)
+- **HSTS (HTTP Strict Transport Security)**: response header telling the browser "only ever use HTTPS for this site"; no clicking through cert errors; `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`
 
 ## 11. Browser Networking & Security
 - **Origin**: Scheme (protocol) + Host (domain) + Port; all three must match to be same-origin; `https://example.com` vs `https://api.example.com` → different origins
@@ -553,241 +508,145 @@ Reverse:  Client → Internet → Reverse Proxy → [Server 1, Server 2, Server 
   - Controlled via `Cache-Control` headers; after deploy, **cache invalidation** or versioned file names (`app.3f9a2.js`)
 
 ## 14. VPN
-- **VPN (Virtual Private Network)**: creates an **encrypted tunnel** over the public internet between your device and a VPN server (or between two networks); your device behaves as if it's directly connected to that private network
-  - **Virtual**: no physical cable to that network; it's done in software over the existing internet
-  - **Private**: traffic inside the tunnel is encrypted; others on the path can't read it
-- **What it does**:
-  - **Access a private network remotely**: work from home and reach office-only things (internal tools, private DBs, servers with private IPs)
-  - **Connect two networks**: office ↔ office, or office ↔ cloud VPC, as if they're one network
-  - **Protect traffic on untrusted networks**: public Wi-Fi owner / ISP only see encrypted data going to the VPN server
-  - **Change your apparent IP/location**: websites see the VPN server's IP, not yours
-- **Tunneling**: putting a whole network packet **inside** another packet (encapsulation); the outer packet gets it across the internet, the inner packet is the real one
-- **Virtual network interface**: VPN client creates a fake network card in the OS (`tun0`, `wg0`) with its own private IP (e.g. `10.8.0.2`); OS routing table is updated so selected traffic goes to this interface instead of the real one
+### What it is
+A VPN (Virtual Private Network) creates an encrypted **tunnel** between your device and a VPN server. Your traffic goes through that server instead of directly to the internet.
 
-- **How it works (step by step)**:
-  1. **Connect & authenticate**: VPN client connects to the VPN server and proves who you are (keys, certificates, username/password + MFA)
-  2. **Key exchange**: both sides agree on encryption keys (similar idea to the TLS handshake)
-  3. **Setup**: client creates the virtual interface, gets a private IP from the VPN, and updates routes (and usually DNS) so traffic goes through the tunnel
-  4. **Send**: an app sends a packet to `142.250.1.1` (Google); OS routes it to `tun0`; VPN client takes the **entire original packet**, encrypts it, and wraps it in a new UDP/IP packet addressed to the VPN server
-  5. **Travel**: packet goes over your Wi-Fi/ISP like normal traffic; they only see `your IP ↔ VPN server IP`, encrypted, not the real destination or content
-  6. **Unwrap & forward**: VPN server decrypts it, gets the original packet back, and forwards it to its destination (for internet traffic, NATs it with its own public IP)
-  7. **Return**: response comes back to the VPN server → encrypted & wrapped → sent to your device → client unwraps it → delivered to the app
+**Tunnel = encapsulation + encryption**
+- **Encapsulation:** your packet is put inside a new packet addressed to the VPN server
+- **Encryption:** the inner packet is scrambled so nobody in between can read it
 
-```
-Original packet:  [ IP src=10.8.0.2  dst=142.250.1.1 | TCP | HTTP data ]
+### Without a VPN
+- Every packet has a header: `From: your IP → To: destination IP`
+- The header must stay readable so routers know where to send it
+- So your ISP (and everyone in between) can see **who** you talk to, even if HTTPS hides **what** you send
+- Domain names also leak through **DNS queries** and the **SNI** in the TLS ClientHello
 
-Sent on the wire: [ IP src=<your public IP>  dst=<VPN server IP> | UDP | encrypted( original packet ) ]
-                    \_____ outer header, visible to ISP ______/      \___ hidden inside tunnel ___/
+### With a VPN (step by step)
+1. VPN app connects to a VPN server (e.g. USA) → **handshake** → both agree on a secret key
+2. VPN app creates a **virtual network card** (`tun0`, `wg0`) and gets a VPN IP (e.g. `10.8.0.12`); the OS routing table is changed so traffic goes into it (all traffic, or only some → see split tunneling)
+3. Your app makes a normal packet: `From: 10.8.0.12 → To: netflix.com`
+4. VPN app **encrypts the whole packet** (header + data) and wraps it in a new UDP/IP packet: `From: your IP → To: VPN server IP`
+5. ISP sees only the outer header (your IP → VPN IP); the rest is gibberish
+6. VPN server unwraps and decrypts it → gets the original packet
+7. **NATs** it: replaces the VPN IP (`10.8.0.12`) with **its own public IP** and forwards it → the site sees the VPN's IP
+8. Reply: site → VPN server → encrypted → back to you → VPN app decrypts → gives the real packet to your app
 
-You → (ISP sees only tunnel) → VPN Server → Google
-                                Google sees VPN server's IP
-```
+All of this happens in **software**: the VPN app on your device and the VPN server on the other end.
 
-- **Types of VPN**:
-  - **Remote access VPN**: single device → network (employee laptop → company network; also consumer VPN apps like NordVPN, Proton VPN)
-  - **Site-to-site VPN**: network → network; routers/gateways at both ends hold the tunnel, devices don't run any VPN client (office ↔ AWS VPC)
-- **Full tunnel vs split tunnel**:
-  - **Full tunnel**: **all** traffic goes through the VPN
-  - **Split tunnel**: only traffic for certain networks (e.g. company `10.0.0.0/8`) goes through the VPN; rest goes directly to the internet → faster, less load on the VPN server
-- **VPN protocols**:
-  - **WireGuard**: modern, small codebase, fast, UDP-based; uses public/private key pairs per peer; basis of Tailscale
-  - **OpenVPN**: older, TLS-based, works over UDP or TCP (TCP 443 can get through strict firewalls), very flexible
-  - **IPsec (with IKEv2)**: works at the IP layer; common for site-to-site and built into OSes/routers/cloud VPN gateways
-- **What a VPN does NOT do**:
-  - Not anonymity: the VPN provider can see all your traffic (you shift trust from ISP to VPN provider)
-  - Doesn't protect against malware, phishing, or tracking via cookies/logins
-  - Doesn't add much for content privacy if sites already use HTTPS; mainly hides **which** sites you visit from the local network/ISP
-  - **DNS leak**: if DNS queries skip the tunnel, your ISP still sees every domain you visit
-- **Engineer notes**:
-  - Common use: reach private resources (DB in a private subnet, internal dashboards) without exposing them to the internet
-  - **CIDR overlap**: if your home network and office network both use `192.168.1.0/24`, routing breaks; plan non-overlapping private ranges for VPCs/offices
-  - **MTU overhead**: tunnel headers take extra bytes, so large packets may need fragmentation or get dropped → "VPN connected but some sites hang"; fix by lowering MTU on the tunnel
-  - Alternatives: **bastion host** / SSH tunnel (`ssh -L 5432:db.internal:5432 bastion`) for one-off access; **mesh VPNs** (Tailscale, ZeroTier) and **zero-trust access** (Cloudflare Access) that check user + device per request instead of trusting "anyone inside the network"
+### Company VPN (private network access)
+- Internal tools (DB, Jira, wiki) use **private IPs** (`10.x.x.x`, `192.168.x.x`) → unreachable from the internet
+- The office **VPN server** is the only door: it has a public IP and is also connected to the private network
+- Same tunnel as a normal VPN, only the **exit** differs:
+  - Normal VPN → traffic exits **out** to the public internet
+  - Company VPN → traffic exits **into** the private office network
+- You get an internal IP (e.g. `10.8.0.12`), so internal servers treat you like you're in the office
+- **Split tunneling:** often only office traffic (`10.x`) goes through the VPN; the rest uses your normal internet (**full tunnel** = everything goes through the VPN)
+- Auth is strict: password + MFA, often a device certificate (company laptops only)
+- **Site-to-site VPN:** the same idea between whole networks (office ↔ office, office ↔ cloud VPC); routers/gateways at both ends keep the tunnel up, so devices don't run any VPN app
 
-## 15. Real-Time Communication
-- **Problem**: HTTP is request → response; server can't send data to the client on its own; real-time apps (chat, notifications, live scores, collaborative editing) need the server to **push** updates
-- **Short polling**: client asks every N seconds "anything new?"; simple but wasteful (most responses empty) and delayed by up to N seconds
-- **Long polling**: client sends a request, server **holds it open** until there's new data (or a timeout), responds, client immediately sends the next request; near real-time over plain HTTP, but a new request per message
-- **Simplex / Half-duplex / Full-duplex**:
-  - **Simplex**: one direction only (TV broadcast; SSE)
-  - **Half-duplex**: both directions, but one at a time (walkie-talkie; HTTP/1.1 request → response)
-  - **Full-duplex**: both sides send independently at the same time (phone call; WebSockets)
-- **WebSockets**: client and server establish a single TCP connection that **stays open**; after that, either side can send messages whenever it wants; low overhead per message (small frame header instead of full HTTP headers)
-  - URLs: `ws://` (plain), `wss://` (over TLS, use this in production)
-  - Messages are sent as **frames** (text or binary)
-  - Use for: chat, multiplayer games, collaborative editing, live trading dashboards
-- **WebSocket handshake**: starts as a normal HTTP/1.1 request asking the server to **upgrade** the same TCP connection to the WebSocket protocol; after `101`, it's no longer HTTP
+### Handshake (OpenVPN / TLS 1.3 style)
+1. **Client hello** + ECDHE public key (+ random number, supported ciphers)
+2. **Server hello** + ECDHE public key (+ chosen cipher)
+3. Both compute the **same shared secret** → derive keys → everything after this is encrypted
+4. Server sends **certificate + signature + Finished**
+   - The signature covers the whole handshake so far → proves it's the real server → stops man-in-the-middle
+5. Client verifies them and sends **Finished** (+ its own certificate if required)
+6. **Username, password, MFA** (company VPN) → sent inside the encrypted channel
+7. **Login OK**
+8. Server pushes **config**: your VPN IP, routes, DNS
+9. **Encrypted data** flows using fast symmetric encryption (AES-GCM / ChaCha20)
+10. Keys are **refreshed periodically** (rekeying)
 
-```
-Client → GET /chat HTTP/1.1
-         Host: example.com
-         Upgrade: websocket
-         Connection: Upgrade
-         Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==
-         Sec-WebSocket-Version: 13
+ECDHE keys are temporary → **forward secrecy**: if the server's key leaks later, past sessions stay safe.
 
-Server → HTTP/1.1 101 Switching Protocols
-         Upgrade: websocket
-         Connection: Upgrade
-         Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
-```
+Same idea as the TLS handshake in section 10. WireGuard is simpler: a 1-RTT handshake with pre-shared public keys, no certificates, and no username/password step.
 
-  - `Sec-WebSocket-Key` / `Accept`: proves the server really understands WebSocket (not a random HTTP server/cache); not a security feature
-  - Browsers send cookies & `Origin` on the handshake → server must check `Origin` (WebSockets aren't covered by CORS)
-- **WebSocket lifecycle** (`ws.readyState`): `CONNECTING` (0, handshake in progress) → `OPEN` (1, messages can flow) → `CLOSING` (2, close handshake in progress) → `CLOSED` (3)
-  - Either side can close by sending a **close frame** with a code (`1000` normal, `1001` going away); `1006` is reported locally when the connection dropped without any close frame
-  - Connections **will** drop (network switch, server deploy, laptop sleep) → client needs reconnect logic with backoff
-- **Ping/Pong**: control frames to check the connection is still alive; one side sends `Ping`, the other must reply with `Pong`; no pong in time → treat connection as dead and close it
-  - Also keeps idle connections from being cut by proxies/load balancers/NAT that drop idle connections (e.g. Nginx default 60s)
-  - Browsers auto-reply to pings but JS **can't send** pings → server sends pings, or the app sends its own heartbeat message
-- **Server-Sent Events (SSE)**: server keeps an HTTP response open and streams events to the client over it; **one-way** (server → client only)
-  - Response header: `Content-Type: text/event-stream`; browser API: `new EventSource("/events")`
-  - Plain HTTP → works with existing proxies, auth, HTTP/2
-  - Built-in **auto-reconnect**; resumes from where it left off using `id:` + `Last-Event-ID` header
-  - Text only (UTF-8), no binary
-  - Over HTTP/1.1 browsers allow only ~6 connections per domain (each open SSE uses one); not an issue with HTTP/2
-  - Use for: notifications, live feeds, progress updates, streaming LLM responses (ChatGPT/Claude-style token streaming)
+### VPN protocols
+- **WireGuard:** modern, small codebase, fast, UDP only; each peer has a public/private key pair (no certificates); basis of Tailscale
+- **OpenVPN:** older, uses TLS for the handshake; works over UDP or TCP; over TCP port 443 it usually gets through strict firewalls (though it can still be detected), but TCP-inside-TCP is slower; very flexible
+- **IPsec + IKEv2:** IKEv2 does the handshake, IPsec encrypts packets at the IP layer; built into OSes, routers and cloud VPN gateways; common for site-to-site (office ↔ office / cloud)
 
-```
-data: {"msg": "hello"}
+### What a VPN does NOT do
+- Not anonymity: the VPN provider can see everything your ISP used to see (you just move your trust to the provider)
+- Doesn't protect against malware, phishing, or tracking via cookies/logins
+- **DNS leak:** if DNS queries skip the tunnel, your ISP still sees every domain you visit
 
-id: 42
-event: notification
-data: {"msg": "new comment"}
-```
+## 15. Peer-to-Peer & BitTorrent
+### Client-server vs P2P
+- **Client-server:** everyone downloads from one server → more users = more load → slower for everyone
+- **Peer-to-peer (P2P):** every participant is both client and server; peers download from each other → more users = more upload capacity → popular files get **faster**
 
-- **WebRTC**: peer-to-peer (browser ↔ browser) audio, video, and data; mostly over UDP; used for video calls (Google Meet), screen sharing
-  - Still needs a server for **signaling** (exchanging connection info, usually via WebSocket), **STUN** (find your public IP behind NAT), and **TURN** (relay traffic when direct P2P fails)
-- **Which one to use**:
-  - Server → client updates only (notifications, feeds, AI streaming) → **SSE**
-  - Two-way, frequent, low-latency messages (chat, games, collaboration) → **WebSockets**
-  - Rare updates, simplest setup → **polling**
-  - Audio/video between users → **WebRTC**
-- **Engineer notes**:
-  - WebSockets/SSE are **stateful, long-lived connections** → each server holds many open connections (memory, file descriptors); plan capacity by concurrent connections, not requests/sec
-  - Multiple server instances: user A on server 1, user B on server 2 → use **pub/sub** (Redis, Kafka, NATS) so a message reaches whichever server holds the connection
-  - Load balancer/proxy must support Upgrade (Nginx needs `proxy_set_header Upgrade` / `Connection` config) and have long enough idle timeouts
-  - Deploys drop all connections → clients must reconnect gracefully (add jitter so all clients don't reconnect at the same moment)
-  - Authenticate during the handshake (cookie or token); browser WebSocket API can't set custom headers like `Authorization`
+### BitTorrent
+The most popular P2P file-sharing protocol. Two core ideas:
+1. **Chop the file into small pieces** (usually 256 KB to a few MB each)
+2. **Everyone who is downloading also uploads** the pieces they already have
 
-## 16. Peer-to-Peer & BitTorrent
-- **Client-server**: everyone downloads from one server; more users → more load on the server → slower for everyone
-- **Peer-to-peer (P2P)**: every participant (peer) is both client **and** server; peers download from each other; more users → more upload capacity → can get **faster** as it grows
-- **BitTorrent**: most popular P2P file-sharing protocol; a file is downloaded in small pieces from many peers at the same time, and you upload pieces you already have to others
-- **Key terms**:
-  - **Piece**: file is split into fixed-size pieces (e.g. 256KB - 4MB); each piece downloaded independently
-  - **Piece hash**: hash (SHA-1, SHA-256 in v2) of every piece; used to verify each downloaded piece
-  - **Peer**: any client in the swarm
-  - **Seeder**: peer that has the complete file and only uploads
-  - **Leecher**: peer still downloading (also uploads the pieces it has)
-  - **Swarm**: all peers sharing the same torrent
-  - **Ratio**: uploaded / downloaded
-- **`.torrent` file**: small metadata file, **not** the actual content; contains file name(s), sizes, piece size, the list of piece hashes, and tracker URLs
-- **Infohash**: hash of the torrent's metadata (info section); unique ID of the torrent across the whole network
-- **Magnet link**: link with just the infohash (+ optional trackers); `magnet:?xt=urn:btih:<infohash>`; client finds peers first, then downloads the metadata from them
-- **Tracker**: server that keeps a list of peers for each infohash; client asks "who has this torrent?" and gets back peer IP:port list; it **doesn't host any file data**
-- **DHT (Distributed Hash Table)**: trackerless peer discovery; peers themselves form a distributed database (Kademlia) storing "infohash → peers"; no central server needed
-- **PEX (Peer Exchange)**: connected peers share their own peer lists with each other
+So you download different pieces from dozens of people at the same time, and they download pieces from you.
 
-- **How a download works (step by step)**:
-  1. **Get metadata**: open a `.torrent` file or magnet link → client gets the infohash (and fetches metadata from peers if magnet)
-  2. **Find peers**: ask trackers + DHT + PEX → get a list of peer IP:ports
-  3. **Connect**: open TCP (or uTP over UDP) connections to many peers; handshake includes the infohash so both sides confirm the same torrent
-  4. **Exchange bitfields**: each peer tells which pieces it has
-  5. **Request pieces**: ask different pieces from different peers in parallel (pieces are further split into ~16KB blocks)
-  6. **Verify**: hash each completed piece and compare with the hash in the metadata; mismatch → discard and re-download (that's why you don't need to trust peers)
-  7. **Share**: once verified, announce "I have piece X" to peers and start uploading it to others
-  8. **Complete**: all pieces verified → file assembled; client becomes a seeder
+### Key terms
+- **Piece:** a fixed-size chunk of the file; each piece is downloaded and verified independently
+- **Piece hash:** fingerprint of each piece (SHA-1, or SHA-256 in BitTorrent v2); used to check every downloaded piece
+- **Peer:** anyone in the swarm sharing this torrent (seeders + leechers)
+- **Seeder:** peer with the complete file; only uploads
+- **Leecher:** peer still downloading; also uploads the pieces it has
+- **Swarm:** all peers sharing one torrent
+- **Tracker:** server that keeps a list of peers (IP + port) in a swarm; it does **not** have the file
+- **Ratio:** uploaded ÷ downloaded
+- **Availability:** how many full copies exist among online peers; below 1.0 = some piece is missing from the swarm
 
-```
-              Tracker / DHT
-          (who has infohash X?)
-                  │ peer list
-                  ▼
-   Peer A ◄──piece 3──► You ◄──piece 7──► Peer B
-                         ▲
-                     piece 1
-                         │
-                       Seeder
-```
+### .torrent file, info hash, magnet link
+- **.torrent file:** a small "recipe", not the actual file. Contains file names, sizes, piece size, tracker address (optional) and the **hash of every piece**
+- **Info hash:** hash of the torrent's info section → unique ID of the torrent
+- **Magnet link:** just the info hash as a link (`magnet:?xt=urn:btih:...`); the client finds peers first, then downloads the recipe from them
 
-- **Piece selection**:
-  - **Rarest first**: download pieces that the fewest peers have first → keeps all pieces available in the swarm even if seeders leave
-  - **Random first piece**: grab any piece quickly so you have something to share
-  - **Endgame mode**: for the last few pieces, request them from all peers and cancel duplicates → avoids waiting on one slow peer at the end
-- **Choking / tit-for-tat**: you upload mostly to peers who upload to you the fastest (unchoke them), others are choked; rewards sharing, punishes free-riders
-  - **Optimistic unchoke**: periodically unchoke a random peer → gives new peers a chance and discovers faster peers
-- **Networking details**:
-  - Transport: TCP, or **uTP** (UDP-based, LEDBAT congestion control → backs off when other traffic on your network needs bandwidth)
-  - **NAT problem**: peers behind NAT can't accept incoming connections by default; clients use **UPnP / NAT-PMP** to auto open a port on your router, or manual **port forwarding**; behind CGNAT you can only make outgoing connections (fewer peers → slower)
-  - Two peers both behind NAT need **hole punching** (same idea as WebRTC's STUN)
-  - **Privacy**: your public IP is visible to every peer in the swarm (and anyone monitoring it)
-- **Engineer notes**:
-  - Protocol itself is legal; widely used for Linux ISOs, game updates/patches, large dataset distribution (Internet Archive)
-  - Same idea used internally by companies to distribute large files/deploy artifacts to thousands of servers fast (e.g. Twitter's Murder, Uber's Kraken for Docker images); avoids one storage server becoming a bottleneck
-  - Content addressing (identify data by its hash, verify every piece) also powers IPFS and Git
+### How a download works (step by step)
+1. Open the .torrent / magnet link → client reads the info hash and piece hashes
+2. **Find peers** using:
+   - **Tracker:** "who has this info hash?" → list of IPs
+   - **DHT (Distributed Hash Table):** every client acts as part of a giant shared phonebook (no central server)
+   - **PEX (Peer Exchange):** connected peers share the peers they know
+3. **Connect** to peers (TCP or uTP) → handshake includes the info hash (mismatch = disconnect)
+4. Peers exchange a **bitfield** → a checklist of which pieces each one has
+5. **Request different pieces from different peers** at the same time (each piece is fetched in small ~16 KB blocks)
+6. **Verify** each piece by hashing it and comparing with the .torrent → mismatch = discard and re-download (so you never need to trust peers)
+7. Tell peers "I have piece X" and **start uploading it**
+8. All pieces verified → file is assembled → you become a **seeder**
 
-## 17. Docker Networking
-- **Container**: an isolated process with its own filesystem, process list, and **network stack**; not a VM (shares the host's kernel)
-- **Network namespace**: Linux feature that gives each container its own network stack: its own interfaces, IP address, routing table, ports, and **its own loopback (`localhost`)**
-  - `localhost` inside a container = **that container itself**, not your laptop and not other containers
-  - Two containers can both listen on port 80 without conflict, since each has its own ports
-- **veth pair (virtual ethernet)**: virtual cable with two ends; one end inside the container (`eth0`), other end plugged into a bridge on the host
-- **Bridge (`docker0`)**: virtual switch on the host that connects containers on the same Docker network; containers get private IPs like `172.17.0.2`
+### Rules that keep it working
+- **Rarest first:** download the piece the fewest peers have, so rare pieces don't disappear
+- **Tit-for-tat:** upload mostly to peers who upload the most back to you; others are "choked"
+- **Optimistic unchoke:** every ~30 s, upload to one random peer → helps newcomers get started and finds faster peers
+- **Endgame mode:** for the last few pieces, request them from everyone at once (and cancel the duplicates) → no getting stuck at 99.9%
 
-```
-Container A (172.17.0.2) ──veth──┐
-                                 ├── docker0 bridge (172.17.0.1) ── NAT ── host eth0 (192.168.1.10) ──→ Internet
-Container B (172.17.0.3) ──veth──┘
-```
+### Networking details
+- **Transport:** TCP, or **uTP** (runs over UDP and backs off when other traffic on your network needs bandwidth → torrents don't slow down your browsing)
+- **NAT problem:** peers behind NAT (section 2) can't accept incoming connections by default
+  - Clients use **UPnP / NAT-PMP** to auto-open a port on your router, or you set up **port forwarding** manually
+  - Behind **CGNAT** you can only make outgoing connections → fewer peers → slower
+  - Two peers both behind NAT can sometimes still connect via **hole punching** (both sides connect out to each other at the same time, with a third server helping them find each other's public IP:port)
 
-- **Outbound traffic**: container → bridge → host **NAT**s it to the host's IP → internet (same idea as your home router)
-- **Inbound traffic / Port publishing**: outside world can't reach container IPs directly; publish a port to map `host port → container port`
-  - `docker run -p 8080:80 nginx` → request to `host:8080` is forwarded to the container's port `80`
-  - `-p 127.0.0.1:8080:80` → only reachable from the host itself (default `-p 8080:80` binds on `0.0.0.0`, i.e. all interfaces)
-  - `EXPOSE 80` in a Dockerfile is **only documentation**; it doesn't publish anything
-  - Docker writes its own iptables rules → published ports can **bypass host firewalls like `ufw`**; bind to `127.0.0.1` if a port shouldn't be public
-- **Network drivers (types)**:
-  - **bridge** (default): containers on a private virtual network on one host; reach the outside via NAT; reach containers from outside via published ports
-  - **user-defined bridge** (`docker network create mynet`): same as bridge, but with **built-in DNS** → containers reach each other **by name** (`http://api:3000`); also better isolation; always prefer this over the default bridge
-  - **host** (`--network host`): no network isolation; container uses the host's network stack directly; no NAT, no `-p` needed, best performance; port conflicts with host apps; full behavior only on Linux
-  - **none** (`--network none`): no networking except loopback; for fully isolated jobs
-  - **overlay**: virtual network spanning **multiple hosts** (Docker Swarm); containers on different machines talk as if on one LAN (traffic tunneled between hosts, like a VPN)
-  - **macvlan / ipvlan**: container gets its own IP directly on your physical LAN, looks like a real device to the router; for legacy apps/network appliances
-- **Docker DNS**: on user-defined networks, Docker runs an embedded DNS server (`127.0.0.11`) that resolves container/service names to their current IPs → never hardcode container IPs (they change on restart)
-- **Docker Compose networking**: Compose creates one network per project automatically; every service is reachable by its **service name**
+### Weaknesses
+- **Hit and run:** many people stop seeding once done; nothing in the protocol forces them to keep seeding
+- **Needs someone online:** you need peers online at the same time who have the pieces
+  - One seeder is enough (just slower)
+  - No seeder is fine too if leechers **together** have every piece
+  - Availability < 1.0 → download gets stuck until someone with the missing piece comes back
+- **Dead torrent:** no complete copy left in the swarm → can never finish
+- Great for **popular** files, bad for **rare/old** ones
 
-```yaml
-services:
-  api:
-    build: .
-    ports:
-      - "3000:3000"        # host → api (only needed for access from your laptop)
-    environment:
-      DATABASE_URL: postgres://user:pass@db:5432/app   # "db", not "localhost"
-  db:
-    image: postgres:16
-    # no ports needed: api reaches db over the compose network
-```
+### Why seeders exist
+- Clients keep seeding by default after finishing; many people leave them running in the background
+- **Private trackers** enforce a minimum ratio, or you get banned
+- **Official seeders:** organizations (Linux distros, Internet Archive) seed 24/7
+- Some people seed just to give back
+- **Web seeds:** a torrent can include a normal HTTP link as a backup seeder → works even with zero peers online
 
-  - Inside the network use **container port** (`db:5432`), not the published host port
-  - Only publish `ports` for things you need to reach from the host/browser; keeping the DB unpublished is safer
-- **Container → host machine**: use `host.docker.internal` (works on Docker Desktop; on Linux add `--add-host=host.docker.internal:host-gateway`)
-- **Common bugs**:
-  - App inside the container binds to `127.0.0.1` → `-p` mapping doesn't work; bind to `0.0.0.0`
-  - App container connects to `localhost:5432` for DB → that's itself; use the service name `db`
-  - `port is already allocated` → host port already used by another container/app; change the host side (`-p 8081:80`)
-  - Containers on different networks can't reach each other; connect them with `docker network connect`
-  - Docker Desktop (Mac/Windows/WSL2) runs containers inside a VM, so container IPs aren't reachable from the host directly; use published ports
-- **Useful commands**:
-  - `docker network ls` → list networks
-  - `docker network inspect <network>` → connected containers, IPs, subnet
-  - `docker network create <name>` / `docker network connect <name> <container>`
-  - `docker port <container>` → published port mappings
-  - `docker exec -it <container> sh` then `curl`/`nslookup`/`ping` → debug from inside the container's network
-- **Next step → Kubernetes**: same ideas at cluster scale; containers in a Pod share one network namespace (talk via `localhost`), every Pod gets its own IP, and **Services** give a stable name/IP + load balancing in front of changing Pods
+### Privacy & legality
+- Every peer in the swarm can see your **IP** and which torrent you're in (they need it to send you data)
+- Anti-piracy companies join swarms to collect IPs → that's why people use a VPN with torrents (peers see the VPN's IP)
+- The technology is legal and widely used (Linux ISOs, Internet Archive, game updates); sharing copyrighted content without permission is illegal in most countries, including India
 
-## 18. DNS
+## 16. DNS
 > I've written a detailed post on this: [How DNS Really Works: From Browser Cache to ISP Tracking](/blogs/how-dns-really-works). It covers resolution step by step, propagation, negative caching, ISP tracking, and DNS leaks. Below is the quick reference.
 
 - **DNS (Domain Name System)**: the internet's phonebook; translates human-readable names (`google.com`) into IP addresses (`142.250.1.1`); runs mostly over **UDP port 53** (TCP for large responses/zone transfers)
@@ -810,7 +669,7 @@ services:
   - Inside Docker/K8s, names like `db` or `my-svc.default.svc.cluster.local` are resolved by the internal DNS server, not public DNS
   - Debug: `dig example.com`, `dig +short example.com A`, `dig @1.1.1.1 example.com` (ask a specific resolver), `nslookup example.com`
 
-## 19. Putting It All Together: From Home Router to Web Page
+## 17. Putting It All Together: From Home Router to Web Page
 - Everything from the sections above, in one journey: your home network connects to the ISP → your laptop joins Wi-Fi → you open `https://example.com` → the page shows up
 - Example values used below:
   - Laptop: private IP `192.168.1.23`, MAC `aa:aa:aa:aa:aa:aa`
@@ -842,7 +701,7 @@ services:
 ### Part 2: Your laptop joins the network
 1. **Wi-Fi connect (L1/L2)**: laptop finds the network (SSID), authenticates with the password (WPA2/WPA3), and both sides derive encryption keys for the Wi-Fi link; laptop now can send frames, but has **no IP yet**
 2. **DHCP (getting an IP)** - 4 steps, **DORA**:
-   - **Discover**: laptop broadcasts "any DHCP server here?" (src IP `0.0.0.0`, dst `255.255.255.255`, dst MAC `ff:ff:ff:ff:ff:ff`); it only has its MAC to identify itself (chicken-and-egg from section 3)
+   - **Discover**: laptop broadcasts "any DHCP server here?" (src IP `0.0.0.0`, dst `255.255.255.255`, dst MAC `ff:ff:ff:ff:ff:ff`); it has no IP yet, so it can only identify itself by its MAC
    - **Offer**: router offers `192.168.1.23`
    - **Request**: laptop says "I'll take `192.168.1.23`"
    - **Ack**: router confirms + sends config: subnet mask `255.255.255.0`, default gateway `192.168.1.1`, DNS server `192.168.1.1`, **lease time** (e.g. 24h; renewed before expiry)
@@ -894,7 +753,7 @@ L1:       radio signal
    - **Certificate validation** in the browser:
      - **Hostname**: `example.com` is in the certificate's SAN list
      - **Validity**: current date is between "not before" and "not after"
-     - **Chain of trust**: leaf is signed by the intermediate, intermediate is signed by a **root CA** already in the OS/browser **trust store**; each signature checked with the issuer's public key
+     - **Chain of trust**: leaf is signed by the intermediate, intermediate is signed by a **root CA** already in the OS/browser **root store**; each signature checked with the issuer's public key
      - **Usage**: certificate is allowed for TLS server authentication
      - **Revocation**: not revoked (CRL/OCSP)
      - **CertificateVerify signature**: valid with the public key from the certificate
@@ -907,7 +766,7 @@ L1:       radio signal
 10. **Server side**:
     - **CDN edge**: cached copy? → respond immediately; otherwise forward to origin
     - **Load balancer** (L7, TLS termination): picks a healthy instance (health checks), adds `X-Forwarded-For` with the client's IP
-    - **Reverse proxy** (Nginx) → forwards to the app, e.g. in a Docker container via a published port (`-p 8080:3000`)
+    - **Reverse proxy** (Nginx) → forwards to the app server (often running in a container)
     - App runs the handler: maybe reads a DB/cache over the internal network (by service name via internal DNS)
     - Response: `200 OK`, `Content-Type: text/html`, `Cache-Control`, `Set-Cookie`, security headers (HSTS, CSP), body
 11. **Response travels back**:
@@ -920,7 +779,7 @@ L1:       radio signal
     - Other domains (CDN, fonts, analytics) → each needs its own **DNS + TCP + TLS** (or QUIC for HTTP/3)
     - JS `fetch` to an API on another origin → **CORS** checks (maybe a preflight `OPTIONS`)
     - `Set-Cookie` stored → sent on future requests
-    - Live features may open a **WebSocket** (`101 Switching Protocols`) or **SSE** stream
+    - Live features (chat, notifications) may open a long-lived **WebSocket** connection (`101 Switching Protocols`)
 13. **Afterwards**:
     - Connection stays open (keep-alive) for more requests; closed after idling → **FIN/ACK**; the side that closes first sits in **TIME_WAIT**
     - DNS, HTTP cache, TLS session ticket are all cached → next visit skips most of these steps (0-RTT resumption possible)
@@ -938,7 +797,7 @@ Each packet      → encapsulated L7→L1 → NAT at home router → hops via BG
 Render           → more requests (multiplexed) → CORS / cookies / WebSocket as needed
 ```
 
-## 20. What to Do Next
+## 18. What to Do Next
 1. **Observe real traffic**: capture in Wireshark while you reconnect Wi-Fi (DHCP DORA), open a site (DNS query, TCP 3-way handshake, TLS ClientHello with SNI), and close it (FIN/ACK); run `dig +trace example.com`, `traceroute example.com`, `curl -v https://example.com`; inspect a site's certificate chain in the browser
 2. **TCP & UDP client/server**: echo server with raw sockets in both, then turn the TCP one into a multi-client chat server
 3. **HTTP/1.1 server from scratch**: on top of raw TCP sockets; parse the request line, headers, and body yourself, serve static files, return proper status codes, support keep-alive
