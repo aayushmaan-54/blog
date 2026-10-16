@@ -22,7 +22,7 @@ Each part covers the basics, but always from a **software engineer's lens**: wha
 
 Read it top to bottom the first time; after that, use it as a quick reference.
 
-## 1. Networking Fundamentals
+## 0. Networking Fundamentals
 - **Networking**: connecting devices so they can communicate and exchange data
 - **Internet**: a huge network of interconnected networks around the world
 - **Hosts**: a network-connected device with an IP address
@@ -51,7 +51,7 @@ Read it top to bottom the first time; after that, use it as a quick reference.
 - **Default Gateway**: device your computer sends traffic to when the destination is outside its own local network, usually router
 - **VLAN (Virtual LAN)**: logically divide one physical LAN/switch infrastructure into separate LANs
 
-## 2. IP Addressing
+## 1. IP Addressing
 - **IP address**: address used to identify a device/interface on a network so data can be sent to the right destination
 - **IPv4**: 
   - older and most widely known version of IP 
@@ -95,7 +95,7 @@ Read it top to bottom the first time; after that, use it as a quick reference.
 - **Multicast**: One to a group; One sender sends data to a specific group of interested receivers, rather than everyone
 - **DHCP (Dynamic Host Configuration Protocol)**: automatically gives devices the network configuration they need (IP, Subnet mask, Default Gateway, DNS, ...)
 
-## 3. MAC
+## 2. MAC
 - **MAC address**: 48-bit hardware address of a network interface (`a4:5e:60:12:34:56`); set by manufacturer; used for delivery **within a local link**
 - **End-to-end (IP)**: source & destination IP stay the same for the whole journey (NAT aside); IP = final destination
 - **Hop-to-hop (MAC)**: source & destination MAC only cover the current link (this device → next device); at every router the old frame is dropped and a new one is written
@@ -103,7 +103,7 @@ Read it top to bottom the first time; after that, use it as a quick reference.
   - For destinations outside the LAN, ARP is done for the **default gateway's** IP, not the final destination
 - **NDP (Neighbor Discovery Protocol)**: IPv6 replacement for ARP; uses ICMPv6 multicast (not broadcast) to find a neighbor's MAC from its IPv6 address; also discovers routers and helps devices auto-configure their IPv6 address (SLAAC)
 
-## 4. Ports & Sockets
+## 3. Ports & Sockets
 - **Port**: 16-bit number (0–65535); helps the OS know which application should receive the network traffic; software concept
 - **Well-known ports**: 0–1023; need root/admin to bind on Linux
 - **Registered ports**: 1024–49151; used by common apps/databases
@@ -121,7 +121,7 @@ Read it top to bottom the first time; after that, use it as a quick reference.
   - Server: `socket()` -> `bind(0.0.0.0:8000)` -> `listen()` -> `accept()` (returns a new connected socket per client) -> send/recv -> `close()`
   - Client: `socket()` -> `connect(server_ip:8000)` (OS picks ephemeral port) -> send/recv -> `close()`
 
-## 5. TCP & UDP
+## 4. TCP & UDP
 - **TCP**: Transmission Control Protocol; connection-oriented; reliable, ordered delivery of a stream of bytes
   - Used by: HTTP/1.1, HTTP/2, SSH, databases
 - **UDP**: User Datagram Protocol; connectionless; no reliability, no ordering; sends independent messages called datagrams; low overhead
@@ -141,7 +141,7 @@ Read it top to bottom the first time; after that, use it as a quick reference.
 - **TCP Keep-Alive**: optional mechanism for checking whether an otherwise idle TCP connection's remote peer is still reachable
   - Not the same as **HTTP keep-alive**, which means reusing one TCP connection for multiple HTTP requests
 
-## 6. OSI Model
+## 5. OSI Model
 - **OSI (Open Systems Interconnection)**: reference model that divides network communication into 7 layers; each layer does one job and only talks to the layer above/below it
 - Not implemented as-is in real life (the Internet runs on TCP/IP), but its **layer numbers are used everywhere** in engineering talk: "L2 switch", "L3 routing", "L4 vs L7 load balancer"
 - Real protocols don't always fit cleanly in one layer (e.g. TLS, QUIC, ARP); use it as a mental map, not a strict rule
@@ -155,7 +155,7 @@ Read it top to bottom the first time; after that, use it as a quick reference.
     - **L1 Physical**: transmitting raw bits as electrical/light/radio signals; e.g. cables, fiber, radio; PDU: **bits**; device: hub, repeater
 - **Debugging by layer**: work bottom-up; cable/Wi-Fi up? (L1/L2) -> got an IP, can ping gateway? (L3) -> port open? (L4) -> app responding correctly? (L7)
 
-## 7. TCP/IP Model
+## 6. TCP/IP Model
 - Model the Internet actually runs on; 4 layers (some books split Link into Data Link + Physical and call it 5)
 - 4 layers, top to bottom:
     - **Application** (OSI L5–L7): protocols and data formats apps use to communicate; e.g. HTTP, DNS, TLS, SSH
@@ -178,7 +178,7 @@ Link:         [ Eth hdr (MACs) | IP hdr | TCP hdr | HTTP data | FCS ]  -> frame 
   - L4 load balancer -> reads IP + port; L7 load balancer / reverse proxy -> reads HTTP (URL, headers)
   - your app -> sees only the data; OS kernel handles L2–L4
 
-## 8. DNS
+## 7. DNS
 > I've written a detailed post on this: [How DNS Really Works: From Browser Cache to ISP Tracking](/blogs/how-dns-really-works). It covers resolution step by step, propagation, negative caching, ISP tracking, and DNS leaks. Below is the quick reference.
 
 - **DNS (Domain Name System)**: the internet's phonebook; translates human-readable names (`google.com`) into IP addresses (`142.250.1.1`); runs mostly over **UDP port 53** (TCP for large responses/zone transfers)
@@ -201,7 +201,7 @@ Link:         [ Eth hdr (MACs) | IP hdr | TCP hdr | HTTP data | FCS ]  -> frame 
   - Inside Docker/K8s, names like `db` or `my-svc.default.svc.cluster.local` are resolved by the internal DNS server, not public DNS
   - Debug: `dig example.com`, `dig +short example.com A`, `dig @1.1.1.1 example.com` (ask a specific resolver), `nslookup example.com`
 
-## 9. HTTP Fundamentals
+## 8. HTTP Fundamentals
 - **HTTP**: Hypertext Transfer Protocol; application layer (L7) protocol that defines how clients and servers communicate through requests and responses; runs over TCP (HTTP/1.1, HTTP/2) or QUIC/UDP (HTTP/3)
 - **Stateless**: each request is independent; server doesn't remember previous requests by itself; state is added on top using cookies, sessions, or tokens
 - **HTTP request**: message a client sends to a server asking it to perform an operation or provide a resource; method + path + headers + optional body
@@ -271,7 +271,7 @@ Content-Length: 28
   - **Location**: URL to redirect to (3xx) or of the newly created resource (201)
   - **Referer**: which page/URL led to the current request (yes, misspelled in the spec); controlled by `Referrer-Policy`
 
-## 10. HTTP Versions
+## 9. HTTP Versions
 - **HTTP/1.0**: one request per TCP connection
   - Flow: open TCP connection (3-way handshake) -> send request -> get response -> close connection (FIN/ACK) -> repeat for the next request
   - Every request pays the handshake cost (1 RTT, +TLS handshake for HTTPS) and starts with TCP slow start again
@@ -309,7 +309,7 @@ Content-Length: 28
   - HTTP/3 → fixed at both levels (per-stream ordering in QUIC)
 - **Header compression**: HTTP/2 uses HPACK, HTTP/3 uses QPACK; both sides keep a table of headers already seen, so a repeated header is sent as a small index into that table instead of the full text
 
-## 11. HTTPS & TLS
+## 10. HTTPS & TLS
 - **HTTPS**: HTTP sent inside a **TLS** (Transport Layer Security) connection; default port 443
 - TLS gives 3 things: **confidentiality** (nobody can read it), **integrity** (nobody can change it unnoticed), **authentication** (you're really talking to `bank.com`)
 - **SSL**: old, broken predecessor of TLS; people still say "SSL certificate", but it's TLS today
@@ -400,7 +400,7 @@ Client                                         Server
 - **0-RTT**: on resumption, client sends data in its very first message; faster, but that data can be **replayed** by an attacker → only for safe requests (GET)
 - **HSTS (HTTP Strict Transport Security)**: response header telling the browser "only ever use HTTPS for this site"; no clicking through cert errors; `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`
 
-## 12. Browser Networking & Security
+## 11. Browser Networking & Security
 - **Origin**: Scheme (protocol) + Host (domain) + Port; all three must match to be same-origin; `https://example.com` vs `https://api.example.com` → different origins
 - **Site**: Scheme + registrable domain (`example.com`); `app.example.com` and `api.example.com` are same-site but cross-origin; SameSite cookies use **site**, CORS uses **origin**
 - **Same-Origin Policy**: browser security rule that restricts how a page from one origin can access resources from another origin
@@ -431,7 +431,7 @@ Client                                         Server
   - Preflight must not require auth, or it fails
 - **CORS with cookies**: client sends `credentials: "include"`; server must reply `Access-Control-Allow-Credentials: true` with the **exact** origin (`*` not allowed)
 
-## 13. Common Web Attacks
+## 12. Common Web Attacks
 - **CSRF**: Cross-Site Request Forgery; malicious website tricks your browser into sending an unwanted request to another website where you're logged in; browser attaches that site's cookies automatically, so the request looks legit
   - Example: you're logged in to `bank.com`; you open `evil.com`, which has a hidden auto-submitting form
 
@@ -490,7 +490,7 @@ Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.examp
   - **DDoS (Distributed Denial of Service)**: flood a service with traffic from many machines until it can't serve real users; defense: CDN/WAF (Cloudflare etc.), rate limiting, autoscaling
   - **Open redirect**: `site.com/login?next=https://evil.com` redirects anywhere; used in phishing since the link starts with a trusted domain; defense: allow only relative/allowlisted redirect URLs
 
-## 14. Proxy & Network Infrastructure
+## 13. Proxy & Network Infrastructure
 - **Proxy**: intermediary between a client and another server; instead of talking directly to the destination, the client talks through the proxy, which forwards the request and relays the response
 - **Forward Proxy**: sits in front of **clients** and talks to the internet on their behalf; destination sees the proxy's IP, not the client's
   - Used for: company/school web filtering, logging, caching, hiding client IP, getting around geo-restrictions (VPN-like)
@@ -537,7 +537,7 @@ Reverse:  Client → Internet → Reverse Proxy → [Server 1, Server 2, Server 
   - Caches static files (images, JS, CSS, videos); can also do TLS, DDoS protection, WAF; e.g. Cloudflare, CloudFront, Akamai
   - Controlled via `Cache-Control` headers; after deploy, **cache invalidation** or versioned file names (`app.3f9a2.js`)
 
-## 15. VPN
+## 14. VPN
 ### What it is
 A VPN (Virtual Private Network) creates an encrypted **tunnel** between your device and a VPN server. Your traffic goes through that server instead of directly to the internet.
 
@@ -589,7 +589,7 @@ All of this happens in **software**: the VPN app on your device and the VPN serv
 
 ECDHE keys are temporary → **forward secrecy**: if the server's key leaks later, past sessions stay safe.
 
-Same idea as the TLS handshake in section 11. WireGuard is simpler: a 1-RTT handshake with pre-shared public keys, no certificates, and no username/password step.
+Same idea as the TLS handshake in section 10. WireGuard is simpler: a 1-RTT handshake with pre-shared public keys, no certificates, and no username/password step.
 
 ### VPN protocols
 - **WireGuard:** modern, small codebase, fast, UDP only; each peer has a public/private key pair (no certificates); basis of Tailscale
@@ -601,7 +601,7 @@ Same idea as the TLS handshake in section 11. WireGuard is simpler: a 1-RTT hand
 - Doesn't protect against malware, phishing, or tracking via cookies/logins
 - **DNS leak:** if DNS queries skip the tunnel, your ISP still sees every domain you visit
 
-## 16. Peer-to-Peer & BitTorrent
+## 15. Peer-to-Peer & BitTorrent
 ### Client-server vs P2P
 - **Client-server:** everyone downloads from one server → more users = more load → slower for everyone
 - **Peer-to-peer (P2P):** every participant is both client and server; peers download from each other → more users = more upload capacity → popular files get **faster**
@@ -650,7 +650,7 @@ So you download different pieces from dozens of people at the same time, and the
 
 ### Networking details
 - **Transport:** TCP, or **uTP** (runs over UDP and backs off when other traffic on your network needs bandwidth → torrents don't slow down your browsing)
-- **NAT problem:** peers behind NAT (section 2) can't accept incoming connections by default
+- **NAT problem:** peers behind NAT (section 1) can't accept incoming connections by default
   - Clients use **UPnP / NAT-PMP** to auto-open a port on your router, or you set up **port forwarding** manually
   - Behind **CGNAT** you can only make outgoing connections → fewer peers → slower
   - Two peers both behind NAT can sometimes still connect via **hole punching** (both sides connect out to each other at the same time, with a third server helping them find each other's public IP:port)
@@ -676,7 +676,7 @@ So you download different pieces from dozens of people at the same time, and the
 - Anti-piracy companies join swarms to collect IPs → that's why people use a VPN with torrents (peers see the VPN's IP)
 - The technology is legal and widely used (Linux ISOs, Internet Archive, game updates); sharing copyrighted content without permission is illegal in most countries, including India
 
-## 17. Putting It All Together: From Home Router to Web Page
+## 16. Putting It All Together: From Home Router to Web Page
 - Everything from the sections above, in one journey: your home network connects to the ISP → your laptop joins Wi-Fi → you open `https://example.com` → the page shows up
 - Example values used below:
   - Laptop: private IP `192.168.1.23`, MAC `aa:aa:aa:aa:aa:aa`
@@ -752,7 +752,7 @@ L1:       radio signal
    - Usually 10-20 hops; `traceroute example.com` shows them
    - Often the "server" is actually the nearest **CDN edge**, not the origin server across the world (anycast IPs route you to the closest one)
 7. **SYN-ACK & ACK**: server replies `203.0.113.10:443 → 198.51.100.7:40001`; home router finds `40001` in its NAT table → rewrites dst to `192.168.1.23:54321` → delivers to the laptop by MAC; laptop sends **ACK** → **TCP connection established** (1 RTT)
-8. **TLS 1.3 handshake** (section 11, 1 RTT):
+8. **TLS 1.3 handshake** (section 10, 1 RTT):
    - **ClientHello**: TLS versions, cipher suites, key share, **SNI** = `example.com`, **ALPN** = `h2, http/1.1`
    - **ServerHello**: chosen cipher + server key share → both compute the shared secret; everything after is encrypted
    - **Certificate**: server (using SNI to pick the right one) sends its **leaf certificate** for `example.com` + **intermediate CA** certificate
@@ -804,7 +804,7 @@ Each packet      → encapsulated L7→L1 → NAT at home router → hops via BG
 Render           → more requests (multiplexed) → CORS / cookies / WebSocket as needed
 ```
 
-## 18. What to Do Next
+## 17. What to Do Next
 Build these in order; each one reuses what you learned in the previous one.
 
 1. **Observe real traffic**: capture in Wireshark while you reconnect Wi-Fi (DHCP DORA), open a site (DNS query, TCP 3-way handshake, TLS ClientHello with SNI), and close it (FIN/ACK); run `dig +trace example.com`, `traceroute example.com`, `curl -v https://example.com`; inspect a site's certificate chain in the browser

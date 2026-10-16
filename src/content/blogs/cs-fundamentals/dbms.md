@@ -8,5 +8,5 @@ tags: ["databases"]
 draft: true
 featured: false
 series:  CS Fundamentals
-seriesOrder:  5
+seriesOrder:  4
 ---

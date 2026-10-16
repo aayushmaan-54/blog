@@ -8,5 +8,5 @@ tags: ["os"]
 draft: true
 featured: false
 series:  CS Fundamentals
-seriesOrder:  4
+seriesOrder:  3
 ---

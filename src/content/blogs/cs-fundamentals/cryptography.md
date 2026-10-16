@@ -8,7 +8,7 @@ tags: ["security", "cryptography"]
 draft: true
 featured: false
 series:  CS Fundamentals
-seriesOrder:  7
+seriesOrder:  6
 ---
 
 - Enc

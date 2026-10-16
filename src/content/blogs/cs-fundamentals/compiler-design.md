@@ -8,5 +8,5 @@ tags: ["compilers"]
 draft: true
 featured: false
 series:  CS Fundamentals
-seriesOrder:  6
+seriesOrder:  5
 ---
