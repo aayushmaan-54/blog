@@ -18,7 +18,7 @@ This is **Part 2** of my **CS Fundamentals** series, where I'm putting down the 
 
 Each part covers the basics, but always from a **software engineer's lens**: what actually shows up when you build, deploy, and debug real systems, not just what's asked in exams.
 
-**In this part** we look at the machine your code runs on: how a CPU executes instructions (pipelines, branch prediction, SIMD), why memory access patterns matter more than Big-O in practice (caches), how numbers and text are stored as bits, how storage and devices talk to the CPU, and where multicore stops scaling. Then we tie it all together by following one program from the disk to its exit. At the end, there's a list of projects to build so the concepts actually stick.
+**In this part** we look at the machine your code runs on: how a CPU executes instructions (pipelines, branch prediction, SIMD), why memory access patterns matter more than Big-O in practice (caches: how they're organized and why locality wins), how numbers and text are stored as bits, how storage and devices talk to the CPU, and where multicore stops scaling. Then we tie it all together by following one program from the disk to its exit. At the end, there's a list of projects to build so the concepts actually stick.
 
 Read it top to bottom the first time; after that, use it as a quick reference.
 
@@ -63,6 +63,10 @@ Read it top to bottom the first time; after that, use it as a quick reference.
   - That's why `nproc` shows 16 on an 8-core machine
 - **Pipelining**: instead of finishing one instruction before starting the next, stages overlap like an assembly line; while instruction 1 executes, instruction 2 is being decoded and instruction 3 fetched
   - Doesn't make one instruction faster; makes many instructions finish faster
+  - **Pipeline hazards**: the next instruction can't start on time → the pipeline **stalls** (empty slots called "bubbles")
+    - **Data hazard**: an instruction needs a result that isn't ready yet (`b = a + 1` right after `a = load x`); CPUs **forward** results directly between stages, and out-of-order execution (below) runs other work meanwhile
+    - **Control hazard**: the CPU doesn't know which instruction comes after a branch → solved by branch prediction (next)
+    - **Structural hazard**: two instructions need the same hardware unit at once → solved by adding more units (modern cores have several ALUs and load/store units)
 - **Branch prediction**: at an `if/else` or loop condition, the pipeline doesn't know which instruction comes next yet; instead of waiting, the CPU **guesses** (based on past behavior) and keeps going
   - **Misprediction**: wrong guess → all work after the branch is thrown away (**pipeline flush**) → ~15-20 wasted cycles
   - Modern predictors are >95% accurate on regular patterns; random data is what hurts
@@ -110,7 +114,7 @@ Read it top to bottom the first time; after that, use it as a quick reference.
 - **Cache hit**: data found in cache → keeps running
 - **Cache miss**: not found → fetch from the next level; a miss all the way to RAM stalls the core for hundreds of cycles (out-of-order execution hides some of it)
 - **Hit ratio**: % of accesses served by the cache; hot loops in well-written code hit L1 >95% of the time
-- **Cache line**: the CPU always moves memory in **64-byte chunks**; ask for one 4-byte `int` and you get the 15 next to it for free
+- **Cache line**: the CPU always moves memory in **64-byte chunks** (128 bytes on Apple M-series); ask for one 4-byte `int` and you get the 15 next to it for free
 - **Temporal locality**: data used now will probably be used again soon → keep it in cache
 - **Spatial locality**: after address `X`, you'll probably use `X+1` → that's why whole cache lines are fetched
 - **Hardware prefetcher**: notices sequential/strided access and loads the next cache lines **before** you ask; works great for arrays, does nothing for pointer chasing
@@ -133,7 +137,30 @@ Read it top to bottom the first time; after that, use it as a quick reference.
   - **Invalid**: this copy is stale; must be fetched again
   - To write, a core must own the line (E/M) → other cores' copies are marked **Invalid** → their next read misses and gets the fresh data
 - **False sharing**: two threads on different cores write **different** variables that happen to sit on the **same cache line** → the line ping-pongs between cores on every write → threads that share nothing run slower than one thread
-  - Fix: pad/align hot per-thread data to 64 bytes (`alignas(64)` in C++, `@Contended` in Java, padding fields in Go)
+  - Fix: pad/align hot per-thread data to 64 bytes (`alignas(64)` in C++, `@Contended` in Java (JDK-internal; needs `-XX:-RestrictContended` for your own classes), padding fields in Go)
+
+### How a Cache Is Organized
+- **Cache mapping**: decides which cache slots a given memory address is allowed to go into
+  - **Direct-mapped**: each address maps to exactly **one** slot (`slot = line number % number of slots`); simple and fast, but two hot addresses that map to the same slot keep evicting each other
+  - **Fully associative**: a line can go **anywhere**; no such conflicts, but every lookup must compare against every slot → only practical for tiny caches (e.g. the TLB)
+  - **N-way set-associative**: the cache is split into **sets** of N slots; the address picks the set (like direct-mapped), and the line can sit in any of that set's N slots (like associative); the middle ground real CPUs use (L1 is typically 8-12 way)
+  - The CPU splits each address into `| tag | set index | offset |`: **offset** (6 bits for a 64-byte line) = which byte inside the line; **index** = which set; **tag** = compared against the stored tags to check it's the right line
+  - **Engineer note**: power-of-two strides (e.g. walking down a column of a `4096`-wide matrix) land in the **same set** every time → constant evictions while most of the cache sits empty; padding each row by one cache line spreads them out
+- **Types of misses (the 3 Cs)**:
+  - **Compulsory**: first time this data is touched; unavoidable (the prefetcher hides some)
+  - **Capacity**: your working set is bigger than the cache → process data in cache-sized chunks (**blocking/tiling**)
+  - **Conflict**: the cache has room, but too many hot lines map to the same set
+- **Replacement policy**: when a set is full, which line gets evicted?
+  - **LRU (Least Recently Used)**: evict the line unused for the longest; exact LRU is expensive in hardware, so CPUs use cheap approximations (**pseudo-LRU**)
+  - Others: random, FIFO
+  - Same problem as application caches: Redis `maxmemory-policy allkeys-lru` (also approximated, by sampling a few keys), or building an LRU cache yourself (hash map + doubly linked list → `O(1)` get and put)
+- **Write policy**: what happens when the CPU writes to a cached line?
+  - **Write-through**: write to the cache **and** the next level at the same time; the next level is always up to date; simple, but every write pays the slow trip
+  - **Write-back**: write only to the cache and mark the line **dirty**; it goes to the next level only when evicted; far fewer slow writes; what CPU caches use (the **Modified** state in MESI above is exactly "dirty")
+  - **Write miss**: **write-allocate** (load the line into cache, then write) vs **no-write-allocate** (write straight to the next level); write-back caches usually pair with write-allocate
+  - **Same trade-off everywhere**:
+    - App cache in front of a DB: write-through (update cache + DB together; consistent, slower writes) vs write-back/write-behind (write to Redis, flush to DB later; fast, but data is lost if the cache dies before flushing)
+    - The OS **page cache** is write-back → that's why `write()` returns before data is on disk and databases need `fsync()` (section 4)
 
 ### Virtual Memory
 > The OS part goes deeper; here's the hardware side.
@@ -143,6 +170,7 @@ Read it top to bottom the first time; after that, use it as a quick reference.
 - **MMU (Memory Management Unit)**: hardware in the CPU that translates every virtual address to a physical one on the fly
 - **TLB (Translation Lookaside Buffer)**: small cache of recent translations; a TLB miss means walking the page table (more memory accesses); **huge pages** (2 MB / 1 GB) cover more memory per entry → databases and JVMs often use them (but **Transparent** Huge Pages, where the kernel does it automatically, can cause latency spikes; Redis and MongoDB recommend turning THP off)
 - **Page fault**: the page isn't in RAM (not loaded yet, or swapped to disk) → CPU traps to the OS, which loads it and resumes the program
+- **`mmap`**: maps a file directly into a process's address space; touching that memory triggers page faults that pull the file's pages in through the page cache → no `read()` calls or extra copies; how the OS loads executables and shared libraries; also used by databases (LMDB) and ML runtimes (llama.cpp loading model weights)
 - **Why it matters**:
   - **Isolation**: one process can't read or corrupt another's memory; touching an unmapped address → **segfault**
   - Programs can reserve more memory than physically exists; `top` shows **VIRT** (reserved) vs **RES** (actually in RAM); RES is the number to watch
@@ -218,6 +246,10 @@ Read it top to bottom the first time; after that, use it as a quick reference.
   - **Polling**: CPU keeps checking "done yet?" → wastes cycles when events are rare
   - **Interrupts**: device sends a signal when it's done; CPU pauses the current work, runs a small handler, resumes → efficient when events are rare
   - At very high event rates, interrupts themselves become overhead → Linux batches network interrupts (NAPI), and high-performance systems poll on purpose (DPDK, SPDK, `io_uring` polling mode)
+- **Interrupts vs exceptions vs traps**: three ways the CPU stops what it's doing and jumps into the kernel
+  - **Interrupt** (asynchronous, from hardware): a device or timer signals the CPU at any moment, unrelated to the current instruction (disk done, packet arrived, timer tick that lets the scheduler switch threads)
+  - **Exception / fault** (synchronous, unplanned): the current instruction caused a problem; a **page fault** is fixed by the OS and the instruction is retried; an invalid memory access or integer divide by zero → OS sends `SIGSEGV` / `SIGFPE` → crash
+  - **Trap** (synchronous, on purpose): an instruction that deliberately enters the kernel; this is how **system calls** work (`syscall` on x86-64, `svc` on ARM64); debugger breakpoints work the same way (`int3`)
 - **DMA (Direct Memory Access)**: devices copy data **directly to/from RAM** without the CPU moving each byte; the CPU just says "read this block into this address" and gets an interrupt when it's done → the CPU is free during the transfer
 - **PCIe**: high-speed link between the CPU and devices like GPUs, NVMe SSDs, and fast network cards; made of **lanes** (x1, x4, x16); a GPU typically uses x16, an NVMe SSD x4; bandwidth roughly doubles every generation
 - **CPU vs GPU**:

@@ -1,6 +1,6 @@
 ---
 title: "CS Fundamentals: Networking"
-description: "Networking from an engineer's lens: IP, MAC, TCP/UDP, HTTP, TLS, proxies, VPN, BitTorrent, DNS, and what really happens when you open a website, plus projects to build next."
+description: "Networking from an engineer's lens: IP, MAC, TCP/UDP, HTTP, TLS, proxies, VPN, BitTorrent, DNS, and what really happens when you open a website, plus a debugging toolkit and projects to build next."
 pubDatetime: 2026-10-10T22:11:07.000+05:30 
 author: Aayushmaan Soni
 slug: /cs-fundamentals/networking
@@ -18,7 +18,7 @@ This is **Part 1** of my **CS Fundamentals** series, where I'm putting down the 
 
 Each part covers the basics, but always from a **software engineer's lens**: what actually shows up when you build, deploy, and debug real systems, not just what's asked in exams.
 
-**In this part** we start from the very basics (IP, MAC, ports, TCP/UDP), move up through DNS, HTTP, TLS, browser security, proxies, VPNs and P2P (BitTorrent), and then tie it all together by following one request from your home router to a rendered web page. At the end, there's a list of projects to build so the concepts actually stick.
+**In this part** we start with the layer model (OSI, TCP/IP) and the very basics (IP, MAC, ports, TCP/UDP), move up through DNS, HTTP (including real-time options like SSE and WebSockets), TLS, browser security, proxies, VPNs and P2P (BitTorrent), and then tie it all together by following one request from your home router to a rendered web page. At the end, there's a debugging toolkit and a list of projects to build so the concepts actually stick.
 
 Read it top to bottom the first time; after that, use it as a quick reference.
 
@@ -51,7 +51,44 @@ Read it top to bottom the first time; after that, use it as a quick reference.
 - **Default Gateway**: device your computer sends traffic to when the destination is outside its own local network, usually router
 - **VLAN (Virtual LAN)**: logically divide one physical LAN/switch infrastructure into separate LANs
 
-## 1. IP Addressing
+## 1. OSI Model
+- **OSI (Open Systems Interconnection)**: reference model that divides network communication into 7 layers; each layer does one job and only talks to the layer above/below it
+- Not implemented as-is in real life (the Internet runs on TCP/IP), but its **layer numbers are used everywhere** in engineering talk: "L2 switch", "L3 routing", "L4 vs L7 load balancer"
+- Real protocols don't always fit cleanly in one layer (e.g. TLS, QUIC, ARP); use it as a mental map, not a strict rule
+- 7 layers, top to bottom (mnemonic: **A**ll **P**eople **S**hould **T**ry **N**ew **D**elicious **P**izza):
+    - **L7 Application**: protocols apps use to talk over the network (not the app itself); e.g. HTTP, DNS, SMTP, SSH, FTP
+    - **L6 Presentation**: how data is represented so the receiver can understand it; encoding (UTF-8, JSON), compression, encryption
+    - **L5 Session**: establishing, managing and ending sessions between apps; in practice usually handled by the app or TLS, rarely a separate thing
+    - **L4 Transport**: app-to-app (process-to-process) delivery using ports; segmentation, reliability, flow control (depends on protocol); e.g. TCP, UDP; PDU: **segment** (TCP) / **datagram** (UDP)
+    - **L3 Network**: logical addressing (IP) and routing packets between networks; e.g. IP, ICMP; PDU: **packet**; device: router
+    - **L2 Data Link**: delivery on the local link (hop-to-hop); MAC addressing, framing, error detection; e.g. Ethernet, Wi-Fi; PDU: **frame**; device: switch
+    - **L1 Physical**: transmitting raw bits as electrical/light/radio signals; e.g. cables, fiber, radio; PDU: **bits**; device: hub, repeater
+- **Debugging by layer**: work bottom-up; cable/Wi-Fi up? (L1/L2) -> got an IP, can ping gateway? (L3) -> port open? (L4) -> app responding correctly? (L7)
+
+## 2. TCP/IP Model
+- Model the Internet actually runs on; 4 layers (some books split Link into Data Link + Physical and call it 5)
+- 4 layers, top to bottom:
+    - **Application** (OSI L5–L7): protocols and data formats apps use to communicate; e.g. HTTP, DNS, TLS, SSH
+    - **Transport** (OSI L4): communication between app endpoints on different hosts using ports; e.g. TCP, UDP
+    - **Internet** (OSI L3): IP addressing and routing packets between networks; e.g. IP, ICMP
+    - **Link / Network Access** (OSI L1–L2): delivery across the local link + physical transmission; e.g. Ethernet, Wi-Fi
+- **Encapsulation**: on send, each layer wraps the data from the layer above with its own header
+- **Decapsulation**: on receive, each layer strips its header and passes the rest up
+
+```
+Application:  [ HTTP data ]
+Transport:    [ TCP hdr (ports) | HTTP data ]                          -> segment
+Internet:     [ IP hdr (IPs) | TCP hdr | HTTP data ]                   -> packet
+Link:         [ Eth hdr (MACs) | IP hdr | TCP hdr | HTTP data | FCS ]  -> frame -> bits
+```
+
+- Each device only opens as many layers as it needs:
+  - switch -> reads up to L2 (MAC)
+  - router -> reads up to L3 (IP); rewrites L2 header every hop (hop-to-hop vs end-to-end)
+  - L4 load balancer -> reads IP + port; L7 load balancer / reverse proxy -> reads HTTP (URL, headers)
+  - your app -> sees only the data; OS kernel handles L2–L4
+
+## 3. IP Addressing
 - **IP address**: address used to identify a device/interface on a network so data can be sent to the right destination
 - **IPv4**: 
   - older and most widely known version of IP 
@@ -94,8 +131,18 @@ Read it top to bottom the first time; after that, use it as a quick reference.
 - **Broadcast**: One to all; One sender sends data to all devices on the relevant local network
 - **Multicast**: One to a group; One sender sends data to a specific group of interested receivers, rather than everyone
 - **DHCP (Dynamic Host Configuration Protocol)**: automatically gives devices the network configuration they need (IP, Subnet mask, Default Gateway, DNS, ...)
+- **Routing table**: list of rules on every host and router: "for this destination range, send to this next hop / interface"; `ip route` on Linux
+  - `192.168.1.0/24 dev wlan0` → local network; deliver directly (ARP for the destination itself)
+  - `default via 192.168.1.1` (= `0.0.0.0/0`) → everything else goes to the gateway
+  - **Longest prefix match**: if several rules match, the most specific one wins (`/24` beats `/16` beats `/0`); that's how a company VPN's `10.0.0.0/8` route captures office traffic while the default route handles the rest
+- **TTL (Time To Live, IP header)**: counter set by the sender (usually 64 or 128); every router decrements it; at 0 the packet is dropped and the router sends back an ICMP "Time Exceeded" → a routing loop can't keep a packet circling forever
+- **ICMP (Internet Control Message Protocol)**: L3 helper protocol for errors and diagnostics; no ports
+  - `ping` → ICMP Echo Request / Echo Reply
+  - **Destination Unreachable**: no route to the network, port closed (for UDP), or "fragmentation needed" (packet bigger than the MTU and marked don't-fragment)
+  - **traceroute**: sends packets with TTL = 1, 2, 3, ...; each router on the path drops one and replies "Time Exceeded" → reveals every hop; `* * *` means that hop doesn't reply, not that it's broken
+  - Blocking all ICMP on a firewall breaks **Path MTU Discovery** → small requests work, big ones hang (classic VPN/tunnel bug); allow at least "fragmentation needed"
 
-## 2. MAC
+## 4. MAC
 - **MAC address**: 48-bit hardware address of a network interface (`a4:5e:60:12:34:56`); set by manufacturer; used for delivery **within a local link**
 - **End-to-end (IP)**: source & destination IP stay the same for the whole journey (NAT aside); IP = final destination
 - **Hop-to-hop (MAC)**: source & destination MAC only cover the current link (this device → next device); at every router the old frame is dropped and a new one is written
@@ -103,7 +150,7 @@ Read it top to bottom the first time; after that, use it as a quick reference.
   - For destinations outside the LAN, ARP is done for the **default gateway's** IP, not the final destination
 - **NDP (Neighbor Discovery Protocol)**: IPv6 replacement for ARP; uses ICMPv6 multicast (not broadcast) to find a neighbor's MAC from its IPv6 address; also discovers routers and helps devices auto-configure their IPv6 address (SLAAC)
 
-## 3. Ports & Sockets
+## 5. Ports & Sockets
 - **Port**: 16-bit number (0–65535); helps the OS know which application should receive the network traffic; software concept
 - **Well-known ports**: 0–1023; need root/admin to bind on Linux
 - **Registered ports**: 1024–49151; used by common apps/databases
@@ -121,7 +168,7 @@ Read it top to bottom the first time; after that, use it as a quick reference.
   - Server: `socket()` -> `bind(0.0.0.0:8000)` -> `listen()` -> `accept()` (returns a new connected socket per client) -> send/recv -> `close()`
   - Client: `socket()` -> `connect(server_ip:8000)` (OS picks ephemeral port) -> send/recv -> `close()`
 
-## 4. TCP & UDP
+## 6. TCP & UDP
 - **TCP**: Transmission Control Protocol; connection-oriented; reliable, ordered delivery of a stream of bytes
   - Used by: HTTP/1.1, HTTP/2, SSH, databases
 - **UDP**: User Datagram Protocol; connectionless; no reliability, no ordering; sends independent messages called datagrams; low overhead
@@ -140,43 +187,6 @@ Read it top to bottom the first time; after that, use it as a quick reference.
 - **Nagle's algorithm**: TCP buffers small writes to send fewer packets; adds latency for small messages; disabled with `TCP_NODELAY`
 - **TCP Keep-Alive**: optional mechanism for checking whether an otherwise idle TCP connection's remote peer is still reachable
   - Not the same as **HTTP keep-alive**, which means reusing one TCP connection for multiple HTTP requests
-
-## 5. OSI Model
-- **OSI (Open Systems Interconnection)**: reference model that divides network communication into 7 layers; each layer does one job and only talks to the layer above/below it
-- Not implemented as-is in real life (the Internet runs on TCP/IP), but its **layer numbers are used everywhere** in engineering talk: "L2 switch", "L3 routing", "L4 vs L7 load balancer"
-- Real protocols don't always fit cleanly in one layer (e.g. TLS, QUIC, ARP); use it as a mental map, not a strict rule
-- 7 layers, top to bottom (mnemonic: **A**ll **P**eople **S**hould **T**ry **N**ew **D**elicious **P**izza):
-    - **L7 Application**: protocols apps use to talk over the network (not the app itself); e.g. HTTP, DNS, SMTP, SSH, FTP
-    - **L6 Presentation**: how data is represented so the receiver can understand it; encoding (UTF-8, JSON), compression, encryption
-    - **L5 Session**: establishing, managing and ending sessions between apps; in practice usually handled by the app or TLS, rarely a separate thing
-    - **L4 Transport**: app-to-app (process-to-process) delivery using ports; segmentation, reliability, flow control (depends on protocol); e.g. TCP, UDP; PDU: **segment** (TCP) / **datagram** (UDP)
-    - **L3 Network**: logical addressing (IP) and routing packets between networks; e.g. IP, ICMP; PDU: **packet**; device: router
-    - **L2 Data Link**: delivery on the local link (hop-to-hop); MAC addressing, framing, error detection; e.g. Ethernet, Wi-Fi; PDU: **frame**; device: switch
-    - **L1 Physical**: transmitting raw bits as electrical/light/radio signals; e.g. cables, fiber, radio; PDU: **bits**; device: hub, repeater
-- **Debugging by layer**: work bottom-up; cable/Wi-Fi up? (L1/L2) -> got an IP, can ping gateway? (L3) -> port open? (L4) -> app responding correctly? (L7)
-
-## 6. TCP/IP Model
-- Model the Internet actually runs on; 4 layers (some books split Link into Data Link + Physical and call it 5)
-- 4 layers, top to bottom:
-    - **Application** (OSI L5–L7): protocols and data formats apps use to communicate; e.g. HTTP, DNS, TLS, SSH
-    - **Transport** (OSI L4): communication between app endpoints on different hosts using ports; e.g. TCP, UDP
-    - **Internet** (OSI L3): IP addressing and routing packets between networks; e.g. IP, ICMP
-    - **Link / Network Access** (OSI L1–L2): delivery across the local link + physical transmission; e.g. Ethernet, Wi-Fi
-- **Encapsulation**: on send, each layer wraps the data from the layer above with its own header
-- **Decapsulation**: on receive, each layer strips its header and passes the rest up
-
-```
-Application:  [ HTTP data ]
-Transport:    [ TCP hdr (ports) | HTTP data ]                          -> segment
-Internet:     [ IP hdr (IPs) | TCP hdr | HTTP data ]                   -> packet
-Link:         [ Eth hdr (MACs) | IP hdr | TCP hdr | HTTP data | FCS ]  -> frame -> bits
-```
-
-- Each device only opens as many layers as it needs:
-  - switch -> reads up to L2 (MAC)
-  - router -> reads up to L3 (IP); rewrites L2 header every hop (hop-to-hop vs end-to-end)
-  - L4 load balancer -> reads IP + port; L7 load balancer / reverse proxy -> reads HTTP (URL, headers)
-  - your app -> sees only the data; OS kernel handles L2–L4
 
 ## 7. DNS
 > I've written a detailed post on this: [How DNS Really Works: From Browser Cache to ISP Tracking](/blogs/how-dns-really-works). It covers resolution step by step, propagation, negative caching, ISP tracking, and DNS leaks. Below is the quick reference.
@@ -308,6 +318,13 @@ Content-Length: 28
   - HTTP/2 → fixed at HTTP level, but still exists at TCP level
   - HTTP/3 → fixed at both levels (per-stream ordering in QUIC)
 - **Header compression**: HTTP/2 uses HPACK, HTTP/3 uses QPACK; both sides keep a table of headers already seen, so a repeated header is sent as a small index into that table instead of the full text
+- **Real-time updates**: HTTP is request → response, so how does the server **push** data (chat, notifications, live scores, LLM token streaming)?
+  - **Short polling**: client asks every N seconds "anything new?"; simple, but mostly empty responses and up to N seconds of delay
+  - **Long polling**: client asks; server holds the request open until there's new data (or a timeout), responds, and the client immediately asks again; near real-time over plain HTTP, but one request per message
+  - **SSE (Server-Sent Events)**: one long-lived HTTP response (`Content-Type: text/event-stream`) that the server keeps writing events into; **server → client only**; browser's `EventSource` reconnects automatically; plain HTTP, so it works through proxies and multiplexes over HTTP/2; how ChatGPT-style apps stream tokens
+  - **WebSocket**: starts as an HTTP request with `Upgrade: websocket` → `101 Switching Protocols` → the TCP connection becomes a **full-duplex** message channel (both sides send anytime); used for chat, multiplayer games, collaborative editing
+    - Long-lived, stateful connections → harder to scale: each server holds its own sockets, so a message for a user connected to another server needs a pub/sub layer (e.g. Redis) to fan out; proxies/LBs drop idle connections → send periodic pings
+  - Rule of thumb: rare updates → polling is fine; server → client stream → SSE; frequent two-way messages → WebSocket
 
 ## 10. HTTPS & TLS
 - **HTTPS**: HTTP sent inside a **TLS** (Transport Layer Security) connection; default port 443
@@ -361,7 +378,7 @@ Root CA (in root store)
 - **Verification**
     - Leaf signature checked with intermediate's public key; intermediate's with root's public key
     - **Hostname** must be in the cert's **SAN (Subject Alternative Name)** list (stops an attacker using a valid cert for their own site)
-    - Also checked: expiry, revocation, **CA:TRUE** flag on intermediates (a normal leaf cert can't sign other certs), **Certificate Transparency** (cert was publicly logged)
+    - Also checked: expiry, revocation (OCSP is being phased out; browsers now ship their own revocation lists, e.g. Chrome CRLSets, Firefox CRLite), **CA:TRUE** flag on intermediates (a normal leaf cert can't sign other certs), **Certificate Transparency** (cert was publicly logged)
     - CA only issues a cert after you prove you control the domain (e.g. Let's Encrypt asks you to serve a file or add a DNS TXT record)
 
 ### CertificateVerify - proving ownership
@@ -650,7 +667,7 @@ So you download different pieces from dozens of people at the same time, and the
 
 ### Networking details
 - **Transport:** TCP, or **uTP** (runs over UDP and backs off when other traffic on your network needs bandwidth → torrents don't slow down your browsing)
-- **NAT problem:** peers behind NAT (section 1) can't accept incoming connections by default
+- **NAT problem:** peers behind NAT (section 3) can't accept incoming connections by default
   - Clients use **UPnP / NAT-PMP** to auto-open a port on your router, or you set up **port forwarding** manually
   - Behind **CGNAT** you can only make outgoing connections → fewer peers → slower
   - Two peers both behind NAT can sometimes still connect via **hole punching** (both sides connect out to each other at the same time, with a third server helping them find each other's public IP:port)
@@ -762,7 +779,7 @@ L1:       radio signal
      - **Validity**: current date is between "not before" and "not after"
      - **Chain of trust**: leaf is signed by the intermediate, intermediate is signed by a **root CA** already in the OS/browser **root store**; each signature checked with the issuer's public key
      - **Usage**: certificate is allowed for TLS server authentication
-     - **Revocation**: not revoked (CRL/OCSP)
+     - **Revocation**: not revoked (checked against CRLs / the browser's own revocation list)
      - **CertificateVerify signature**: valid with the public key from the certificate
      - Any check fails → connection stops, browser shows "Your connection is not private" (HSTS sites don't even allow clicking through)
    - **Finished** from both sides (HMAC over the whole handshake → nothing was tampered with); both derive the final **traffic keys**
@@ -804,7 +821,26 @@ Each packet      → encapsulated L7→L1 → NAT at home router → hops via BG
 Render           → more requests (multiplexed) → CORS / cookies / WebSocket as needed
 ```
 
-## 17. What to Do Next
+## 17. Debugging Toolkit
+- Work bottom-up, same as the OSI layers (section 1): link → IP → DNS → port → TLS → HTTP
+- **Interface & routes**: `ip addr` (my IPs), `ip route` (gateway, routes), `ip neigh` (ARP cache)
+- **Reachability**: `ping 8.8.8.8` (IP works?) vs `ping google.com` (DNS works too?); `traceroute` / `mtr` (where along the path it breaks or gets slow)
+- **DNS**: `dig example.com`, `dig +trace example.com` (full resolution path), `dig @1.1.1.1 example.com` (compare resolvers)
+- **Ports & connections**:
+  - `ss -tlnp` → what's listening, on which IP:port, by which process (`127.0.0.1` vs `0.0.0.0` binding shows up here)
+  - `ss -tan` → all TCP connections and their states; thousands of `TIME_WAIT` = no connection reuse; `CLOSE_WAIT` piling up = your app isn't closing sockets
+  - `lsof -i :8080` → who's holding this port (`address already in use`)
+- **Is the remote port open?**: `nc -zv db.internal 5432`
+  - "connection refused" → host reachable, nothing listening on that port (or wrong bind address)
+  - "timed out" → packets are dropped: firewall/security group, wrong route, or host down
+- **TLS**: `openssl s_client -connect example.com:443 -servername example.com` → certificate chain, expiry, TLS version
+- **HTTP**:
+  - `curl -v https://example.com` → DNS, connect, TLS handshake, request & response headers
+  - `curl -o /dev/null -s -w "dns %{time_namelookup} tcp %{time_connect} tls %{time_appconnect} ttfb %{time_starttransfer}\n" https://example.com` → where the time goes (DNS vs TCP vs TLS vs server)
+  - Browser DevTools → Network tab: timings, status codes, CORS errors, cookies, protocol (`h2`/`h3`)
+- **Packets**: `tcpdump -i any -n port 443` on servers; Wireshark on your laptop (or open a `tcpdump -w capture.pcap` file in it)
+
+## 18. What to Do Next
 Build these in order; each one reuses what you learned in the previous one.
 
 1. **Observe real traffic**: capture in Wireshark while you reconnect Wi-Fi (DHCP DORA), open a site (DNS query, TCP 3-way handshake, TLS ClientHello with SNI), and close it (FIN/ACK); run `dig +trace example.com`, `traceroute example.com`, `curl -v https://example.com`; inspect a site's certificate chain in the browser
